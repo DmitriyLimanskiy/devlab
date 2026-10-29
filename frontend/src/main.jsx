@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { FlaskConical, PanelLeftClose, PanelLeftOpen, House, BookOpen, ArrowRight } from 'lucide-react'
+import { GitCourse } from './GitCourse'
 import { IconButton, Badge } from './ui'
 import { pages, api } from './routes'
 import './tokens.css'
 import './styles.css'
 
 const navigation = [
-  { path: pages.home, label: 'Главная', icon: House },
-  { path: pages.courses, label: 'Курсы', icon: BookOpen },
+  { path: pages.catalog, label: 'Курсы', icon: BookOpen },
+  { path: pages.git, label: 'Git', icon: FlaskConical },
 ]
 
 function useApi(path) {
@@ -37,24 +38,20 @@ function ApiState({ state, children }) {
   return children(state.data)
 }
 
-function Home() {
-  const state = useApi(api.home)
-  return <section className="welcome">
-    <FlaskConical className="welcome-mark" size={40} strokeWidth={1.4} />
-    <h1>DevLab</h1>
-    <ApiState state={state}>{data => <p>{data.description}</p>}</ApiState>
-    <a className="primary-link" href={pages.courses}>Перейти к курсам<ArrowRight size={16} /></a>
-  </section>
+function GitPage() {
+  const state = useApi(api.git)
+  return <ApiState state={state}>{() => <GitCourse />}</ApiState>
 }
 
-function Courses() {
-  const state = useApi(api.courses)
-  return <section className="courses" aria-labelledby="courses-title">
-    <h1 id="courses-title">Курсы</h1>
-    <ApiState state={state}>{courses => courses.length ? <ul className="course-list">
-      {courses.map(course => <li className="course" key={course.id}>
+function Catalog() {
+  const state = useApi(api.catalog)
+  return <section className="catalog" aria-labelledby="catalog-title">
+    <h1 id="catalog-title">Курсы</h1>
+    <ApiState state={state}>{catalog => catalog.length ? <ul className="course-list">
+      {catalog.map(course => <li className="course" key={course.id}>
         <BookOpen className="course-icon" size={22} />
         <div><h2>{course.title}</h2><p>{course.description}</p></div>
+        {course.id === 'git' && <a className="course-open" href={pages.git}>Открыть<ArrowRight size={16} /></a>}
         <Badge>{course.status === 'planned' ? 'В разработке' : course.status}</Badge>
       </li>)}
     </ul> : <p>Курсы пока не добавлены.</p>}</ApiState>
@@ -63,12 +60,16 @@ function Courses() {
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const path = window.location.pathname.replace(/\/$/, '') || '/'
+  const requestedPath = window.location.pathname.replace(/\/$/, '') || '/'
+  const path = requestedPath === '/' ? pages.catalog : requestedPath
+  useEffect(() => {
+    if (path !== requestedPath) window.history.replaceState(null, '', path + window.location.search + window.location.hash)
+  }, [path, requestedPath])
   const page = navigation.find(item => item.path === path)
   const PageIcon = page?.icon ?? House
   useEffect(() => { document.title = `${page?.label ?? 'Страница не найдена'} — DevLab` }, [page])
   return <div className={`workbench ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-    <header className="titlebar"><a className="brand" href={pages.home} aria-label="DevLab — главная"><FlaskConical size={21} /><span>Dev<span className="accent">Lab</span></span></a></header>
+    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="DevLab — каталог курсов"><FlaskConical size={21} /><span>Dev<span className="accent">Lab</span></span></a></header>
     <aside className="sidebar">
       <div className="sidebar-header">
         {sidebarOpen && <span>Рабочее пространство</span>}
@@ -82,8 +83,8 @@ function App() {
     </aside>
     <main className="editor">
       <div className="tabbar"><div className="tab"><PageIcon size={15} /><span>{page?.label ?? '404'}</span></div></div>
-      <div className={`canvas ${path === pages.courses ? 'canvas-courses' : ''}`}>
-        {path === pages.home ? <Home /> : path === pages.courses ? <Courses /> : <section className="welcome"><h1>Страница не найдена</h1><a className="primary-link" href={pages.home}>На главную<ArrowRight size={16} /></a></section>}
+      <div className={`canvas ${path === pages.git ? 'canvas-git' : path === pages.catalog ? 'canvas-catalog' : ''}`}>
+        {path === pages.catalog ? <Catalog /> : path === pages.git ? <GitPage /> : <section className="welcome"><h1>Страница не найдена</h1><a className="primary-link" href={pages.catalog}>К каталогу<ArrowRight size={16} /></a></section>}
       </div>
     </main>
   </div>

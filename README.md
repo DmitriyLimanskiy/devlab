@@ -17,10 +17,10 @@ docker compose build
 
 После сборки применить образы и запустить приложение: `docker compose up -d --force-recreate`. Пересборка сама по себе не обновляет уже работающие контейнеры.
 
-Главная страница: http://localhost:8080. Frontend: `/` — главная, `/courses` — курсы; неизвестные пути показывают страницу 404. Backend: `GET /api/v1/` и `GET /api/v1/courses`. Главная и каталог получают данные из API. Каталог пока статический: Git, Python и Docker отмечены «В разработке». Автоматические API docs отключены.
+Главная страница: http://localhost:8080. Frontend: `/catalog` — каталог курсов, `/` переводит на `/catalog`; неизвестные пути показывают страницу 404. Backend: `GET /api/v1/catalog`. Каталог получает данные из API. Каталог пока статический: Git отмечен «В разработке». Автоматические API docs отключены.
 
 ```sh
-curl http://localhost:8080/api/v1/
+curl http://localhost:8080/api/v1/catalog
 docker compose ps
 docker compose logs -f
 ```
@@ -58,8 +58,10 @@ Vite проксирует `/api/` на localhost:8000. Production-сборка: 
 
 | Режим | Главная | Курсы | API |
 | --- | --- | --- | --- |
-| Docker / nginx | http://localhost:8080/ | http://localhost:8080/courses | http://localhost:8080/api/v1/ |
-| Vite dev | http://localhost:5173/ | http://localhost:5173/courses | http://localhost:5173/api/v1/ |
-| Vite preview | http://localhost:4173/ | http://localhost:4173/courses | http://localhost:4173/api/v1/ |
+| Docker / nginx | http://localhost:8080/ | http://localhost:8080/catalog | http://localhost:8080/api/v1/ |
+| Vite dev | http://localhost:5173/ | http://localhost:5173/catalog | http://localhost:5173/api/v1/ |
+| Vite preview | http://localhost:4173/ | http://localhost:4173/catalog | http://localhost:4173/api/v1/ |
 
 Для Vite dev и preview отдельно запустите backend на порту 8000. Порт 8000 обслуживает JSON API, а не HTML-страницы. Прокси nginx и Vite сохраняют `/api/v1/` в запросах. Адреса frontend собраны в `frontend/src/routes.js`; backend использует APIRouter с префиксом `/api/v1`.
+
+Страница Git: `/git-course`, переход «Открыть» в каталоге. Данные страницы запрашиваются через `GET /api/v1/git-course`; пока это заглушка, синхронизация CLI и граф репозитория ещё не подключены.
