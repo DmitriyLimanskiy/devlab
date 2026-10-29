@@ -4,12 +4,15 @@ import fcntl
 import os
 import pty
 import select
+import json
+import re
 import signal
 import struct
 import subprocess
 import sys
 import termios
 import time
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,6 +20,8 @@ from pathlib import Path
 @unittest.skipUnless(sys.platform == "darwin", "Первая версия рассчитана на macOS")
 class TerminalTest(unittest.TestCase):
     def setUp(self):
+        self.project = tempfile.TemporaryDirectory()
+        self.addCleanup(self.project.cleanup)
         self.master, self.slave = pty.openpty()
         self.original = termios.tcgetattr(self.slave)
         env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"), NO_COLOR="1")
@@ -24,7 +29,10 @@ class TerminalTest(unittest.TestCase):
             [sys.executable, "-m", "devlab"], stdin=self.slave,
             stdout=self.slave, stderr=self.slave, env=env,
         )
-        self.read_until(b" > ")
+        self.read_until("Папка проекта".encode())
+        os.write(self.master, self.project.name.encode() + b"\n")
+        startup = self.read_until(b" > ")
+        self.snapshot = Path(re.search(rb"(/[^\r\n]+/state.json)", startup).group(1).decode())
 
     def tearDown(self):
         if self.process.poll() is None:
@@ -66,6 +74,7 @@ class TerminalTest(unittest.TestCase):
         os.write(self.master, b"exit 7\n")
         self.read_until("Сессия DevLab завершена.".encode())
         self.assertEqual(self.process.wait(timeout=5), 7)
+        self.assertTrue(self.snapshot.exists())
         self.assert_terminal_restored()
 
     def test_eof_exits_and_restores_terminal(self):

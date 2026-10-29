@@ -16,17 +16,30 @@ def _write_all(fd: int, data: bytes) -> None:
         data = data[os.write(fd, data):]
 
 
-def run_bash(bash: str, rc_path: str) -> int:
+def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True) -> int:
     stdin, stdout = sys.stdin.fileno(), sys.stdout.fileno()
     original = termios.tcgetattr(stdin)
+    from .observer import Observer
+
+    events, notify = os.pipe()
+    os.set_inheritable(notify, True)
+    with open(rc_path, "a") as rc:
+        rc.write("\nPROMPT_COMMAND='__devlab_status=$?; printf \"%s\\n\" \"$__devlab_status\" >&" + str(notify) + "'\n")
     pid, master = pty.fork()
     if pid == 0:
         try:
+            os.close(events)
+            os.chdir(folder)
             os.environ["BASH_SILENCE_DEPRECATION_WARNING"] = "1"
             os.execv(bash, [bash, "--noprofile", "--rcfile", rc_path, "-i"])
         except OSError:
             os.write(2, b"DevLab: cannot start bash\n")
             os._exit(127)
+
+    os.close(notify)
+    observer = Observer(folder, events, snapshot, os.path.join(os.path.dirname(rc_path), "command-status.json"))
+    observer.preserve_existing = not write_snapshot
+    observer.thread.start()
 
     def resize(_signum=None, _frame=None):
         size = fcntl.ioctl(stdin, termios.TIOCGWINSZ, b"\0" * 8)
@@ -65,3 +78,5 @@ def run_bash(bash: str, rc_path: str) -> int:
         if not finished:
             # Закрытие master посылает SIGHUP терминальной сессии.
             os.waitpid(pid, 0)
+        observer.close()
+        os.close(events)

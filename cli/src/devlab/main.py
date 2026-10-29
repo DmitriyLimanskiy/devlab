@@ -1,10 +1,13 @@
 """Точка входа и оформление терминальной сессии."""
 
+import json
 import os
 import shutil
 import sys
 import tempfile
 from pathlib import Path
+
+from .project import ensure_state_ignored
 
 
 def main() -> int:
@@ -33,15 +36,57 @@ def main() -> int:
     print("  Локальная среда · bash")
     print("  Выход: exit или Ctrl+D\n", flush=True)
 
+    while True:
+        try:
+            choice = input(f"  Папка проекта [{Path.cwd()}]: ").strip()
+            folder = Path(choice).expanduser().resolve() if choice else Path.cwd()
+            if not folder.is_dir() or not os.access(folder, os.R_OK | os.X_OK):
+                print("  Выберите существующую доступную папку.")
+                continue
+            break
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Запуск отменён.")
+            return 0
+    if shutil.which("git") is None:
+        print("Для наблюдения требуется Git в PATH.", file=sys.stderr)
+        return 1
+
     # Временный rc не затрагивает пользовательские настройки и историю bash.
     with tempfile.TemporaryDirectory(prefix="devlab-") as directory:
         rc = Path(directory) / "bashrc"
         prompt = r"\[\e[36m\]devlab\[\e[0m\] \w > " if color else r"devlab \w > "
+        snapshot = folder / "state.json"
+        try:
+            overwrite = True
+            if snapshot.exists() or snapshot.is_symlink():
+                while True:
+                    answer = input("  state.json уже существует. Перезаписать сейчас? [yes/no]: ").strip().lower()
+                    if answer in {'yes', 'no'}:
+                        overwrite = answer == 'yes'
+                        break
+                    print("  Введите yes или no.")
+                if snapshot.is_symlink() or not snapshot.is_file():
+                    print("Нельзя перезаписать ссылку или каталог state.json.", file=sys.stderr)
+                    return 1
+                if not overwrite:
+                    print("  Текущий state.json сохранён. Новые изменения будут записываться.")
+            # Создаём файл до запуска bash, чтобы сразу проверить право записи.
+            ensure_state_ignored(folder)
+            if overwrite and not snapshot.exists():
+                with snapshot.open('x') as stream:
+                    json.dump({'generator': 'devlab-cli'}, stream)
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Запуск отменён.")
+            return 0
+        except (OSError, ValueError, AttributeError) as error:
+            print(f"Не удалось подготовить файлы проекта: {error}", file=sys.stderr)
+            return 1
+        print(f"  Локальный снимок: {snapshot}\n", flush=True)
         rc.write_text(
             f"PS1='{prompt}'\nPS2='... > '\nunset HISTFILE\n", encoding="utf-8"
         )
         try:
-            status = run_bash(bash, str(rc))
+            status = run_bash(bash, str(rc), folder, snapshot, overwrite)
         except OSError as error:
             print(
                 f"DevLab: не удалось выполнить терминальную сессию: {error}",
