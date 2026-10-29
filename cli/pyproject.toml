@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devlab-cli"
+version = "0.1.0"
+description = "Локальная терминальная сессия DevLab"
+requires-python = ">=3.11"
+
+[project.scripts]
+devlab = "devlab.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
