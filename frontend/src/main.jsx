@@ -47,7 +47,7 @@ function ApiState({ state, children }) {
 
 function GitPage() {
   const state = useApi(api.git, parseGitCourse, 'POST')
-  return <ApiState state={state}>{course => <GitCourse steps={course.steps} sessionId={course.session_id} generation={course.generation} />}</ApiState>
+  return <ApiState state={state}>{course => <GitCourse steps={course.steps} sessionId={course.session_id} />}</ApiState>
 }
 
 function Catalog() {

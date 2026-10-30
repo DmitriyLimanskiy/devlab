@@ -16,10 +16,9 @@ function StepContent({ content }) {
   })}</div>
 }
 
-export function GitCourse({ steps, sessionId, generation }) {
+export function GitCourse({ steps, sessionId }) {
   const live = usePracticeState(sessionId)
   const snapshot = live.data?.snapshot
-  const currentGeneration = live.data?.generation ?? generation
   const connected = !live.error && live.data?.status === 'active' && live.data?.cli_connected
   const status = live.error ? 'Нет связи с сервером' : connected ? 'CLI подключен' : live.data ? 'CLI не подключен' : 'Подключение…'
   return <section className="git-course" aria-labelledby="git-title">
@@ -43,7 +42,6 @@ export function GitCourse({ steps, sessionId, generation }) {
       <div className="repository-workspace">
         <div className="repository-toolbar"><span><GitBranch size={17} />Репозиторий</span><Status active={connected}>{status}</Status></div>
         <div className="directory-info"><span><FolderOpen size={16} />Рабочая директория</span><code>{snapshot?.state.path ?? 'Выбери папку в CLI'}</code></div>
-        {snapshot && snapshot.generation < currentGeneration && <p className="snapshot-warning">Ожидаем состояние нового подключения</p>}
         {live.data?.status === 'closed' && <p className="snapshot-warning">Сессия закрыта</p>}
         <GitRepository snapshot={snapshot} />
       </div>
