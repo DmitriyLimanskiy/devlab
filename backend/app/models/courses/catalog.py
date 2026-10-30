@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class ResCatalog(BaseModel):
+class CatalogRes(BaseModel):
     id: str
     title: str
     description: str

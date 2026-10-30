@@ -8,7 +8,17 @@ const areas = [
   { icon: Folder, title: 'Рабочая папка', detail: 'Working directory', text: 'Данные о рабочих файлах пока не поступают.' },
 ]
 
-export function GitCourse() {
+function StepContent({ content }) {
+  const blocks = content.blocks ?? []
+  if (!blocks.length) return <p>Описание шага пока не добавлено.</p>
+  return <div className="step-blocks">{blocks.map((block, index) => {
+    if (block.type === 'text') return <p key={index}>{block.text}</p>
+    if (block.type === 'code') return <pre key={index}><code>{block.text}</code></pre>
+    return <p key={index}>Этот тип содержимого пока не поддерживается.</p>
+  })}</div>
+}
+
+export function GitCourse({ steps }) {
   return <section className="git-course" aria-labelledby="git-title">
     <a className="back-link" href={pages.catalog}><ArrowLeft size={15} />Каталог курсов</a>
     <header className="course-heading">
@@ -19,11 +29,12 @@ export function GitCourse() {
       <aside className="practice-panel" aria-label="Начало работы">
         <h2><Terminal size={18} />Локальная практика</h2>
 
-        <ol className="practice-steps">
-          <li><span>1</span><div><strong>Запусти CLI</strong><code>devlab</code></div></li>
-          <li><span>2</span><div><strong>Выбери папку</strong><p>Или создай репозиторий.</p></div></li>
-          <li><span>3</span><div><strong>Работай в bash</strong><p>Обычные команды Git.</p></div></li>
-        </ol>
+        {steps.length ? <ol className="practice-steps">
+          {steps.map(step => <li key={step.id} value={step.position}>
+            <span aria-hidden="true">{step.position}</span>
+            <div className="step-body"><strong>{step.title}</strong><StepContent content={step.content} /></div>
+          </li>)}
+        </ol> : <p className="steps-empty">Шаги курса пока не добавлены.</p>}
         <div className="practice-note"><code>state.json</code><p>Локальный снимок · передача на сервер пока недоступна.</p></div>
         <p className="practice-footer">Выход из CLI: <code>exit</code> или <code>Ctrl+D</code>.</p>
       </aside>

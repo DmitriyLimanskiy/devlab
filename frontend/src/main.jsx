@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { FlaskConical, PanelLeftClose, PanelLeftOpen, House, BookOpen, ArrowRight } from 'lucide-react'
 import { GitCourse } from './GitCourse'
+import { parseCourseSteps } from './courseSteps'
 import { IconButton, Badge } from './ui'
 import { pages, api } from './routes'
 import { parseCatalog, courseStatusLabels } from './catalog'
@@ -45,8 +46,8 @@ function ApiState({ state, children }) {
 }
 
 function GitPage() {
-  const state = useApi(api.git)
-  return <ApiState state={state}>{() => <GitCourse />}</ApiState>
+  const state = useApi(api.git, parseCourseSteps)
+  return <ApiState state={state}>{steps => <GitCourse steps={steps} />}</ApiState>
 }
 
 function Catalog() {

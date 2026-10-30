@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from app.db.session import get_session
-from app.models.courses.catalog import ResCatalog
+from app.models.courses.catalog import CatalogRes
 from app.schemas import Course
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -10,13 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(prefix="/api/v1", tags=["catalog"])
 
 
-@router.get("/catalog", response_model=list[ResCatalog])
+@router.get("/catalog", response_model=list[CatalogRes])
 async def catalog(
     db: Annotated[AsyncSession, Depends(get_session)],
-) -> list[ResCatalog]:
+) -> list[CatalogRes]:
     courses = await db.scalars(select(Course).order_by(Course.position, Course.id))
     return [
-        ResCatalog(
+        CatalogRes(
             id=course.slug,
             title=course.title,
             description=course.description,

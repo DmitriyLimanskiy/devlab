@@ -112,3 +112,10 @@ code { font-family: var(--font-mono); }
   .course-heading { flex-wrap: wrap; }
   .course-heading .badge { margin: 0; }
 }
+
+.step-body { min-width: 0; overflow-wrap: anywhere; }
+.step-blocks { display: grid; gap: 10px; }
+.step-blocks p { white-space: pre-wrap; }
+.step-blocks pre { margin: 0; max-width: 100%; overflow-x: auto; }
+.practice-steps .step-blocks code { display: block; width: max-content; min-width: 100%; }
+.steps-empty { margin: 24px 0; }
