@@ -1,4 +1,4 @@
-"""Подготовка служебных файлов в выбранной папке."""
+"""Подготовка служебных файлов в выбранной папке"""
 
 from pathlib import Path
 
@@ -9,7 +9,7 @@ def ensure_state_ignored(folder: Path) -> None:
         raise OSError('Не удалось обновить .gitignore: файл является символической ссылкой')
     content = path.read_bytes() if path.exists() else b''
     rules = content.splitlines()
-    # Последнее явное правило имеет приоритет над предыдущим исключением.
+    # Последнее явное правило имеет приоритет над предыдущим исключением
     relevant = [line for line in rules if line in
                 (b'state.json', b'/state.json', b'!state.json', b'!/state.json')]
     if relevant and not relevant[-1].startswith(b'!'):

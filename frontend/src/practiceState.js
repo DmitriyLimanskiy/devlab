@@ -38,7 +38,7 @@ export function commitCount(count) {
 }
 
 const branchPalette = ['var(--branch-violet)', 'var(--branch-orange)', 'var(--branch-green)', 'var(--branch-pink)']
-export function graphLayout(commits, refs = [], head = null) {
+export function graphLayout(commits, refs = [], head = null, previous = null) {
   const byId = new Map(commits.map(c => [c.id, c]))
   const branches = refs.filter(r => r.startsWith('refs/heads/')).map(ref => {
     const split = ref.lastIndexOf(' ')
@@ -46,7 +46,15 @@ export function graphLayout(commits, refs = [], head = null) {
   }).sort((a, b) => a.name.localeCompare(b.name))
   const main = branches.find(b => b.name === 'main') ?? branches.find(b => b.name === 'master')
   const lanes = new Map(), laneNames = [], laneColors = [], depths = new Map(), usedColors = new Set()
-  const branchColors = new Map([[main?.name ?? 'HEAD', 'var(--accent)']])
+  // Сохраняем наблюдавшиеся линии, даже если merge/fast-forward переместил refs
+  const retained = previous?.nodes?.some(n => byId.has(n.id)) ? previous : null
+  if (retained) {
+    retained.lanes.forEach(lane => { laneNames.push(lane.name); laneColors.push(lane.color); usedColors.add(lane.color) })
+    retained.nodes.forEach(node => { if (byId.has(node.id) && node.lane < laneNames.length) lanes.set(node.id, node.lane) })
+    if (main) { laneNames[0] = main.name; laneColors[0] = 'var(--accent)' }
+  }
+  const branchColors = new Map(laneNames.map((name, i) => [name, laneColors[i]]))
+  branchColors.set(main?.name ?? 'HEAD', 'var(--accent)')
   usedColors.add('var(--accent)')
   function colorFor(name) {
     if (branchColors.has(name)) return branchColors.get(name)
@@ -61,9 +69,12 @@ export function graphLayout(commits, refs = [], head = null) {
   branches.forEach(b => colorFor(b.name))
   function claim(id, name) {
     if (!byId.has(id) || lanes.has(id)) return
-    const lane = laneNames.length
-    laneNames.push(name)
-    laneColors.push(lane === 0 ? 'var(--accent)' : colorFor(name))
+    let lane = laneNames.indexOf(name)
+    if (lane < 0) {
+      lane = laneNames.length
+      laneNames.push(name)
+      laneColors.push(lane === 0 ? 'var(--accent)' : colorFor(name))
+    }
     while (byId.has(id) && !lanes.has(id)) {
       lanes.set(id, lane)
       id = byId.get(id).parents[0]
@@ -91,6 +102,19 @@ export function graphLayout(commits, refs = [], head = null) {
     positions.set(commit.id, position)
     return { ...commit, ...position, lane, color: laneColors[lane] }
   })
+  // Прореживаем пустые линии, чтобы ограниченная история не наращивала высоту
+  const visibleLanes = [...new Set([0, ...nodes.map(n => n.lane)])].sort((a, b) => a - b)
+  nodes.forEach(node => {
+    node.lane = visibleLanes.indexOf(node.lane)
+    node.y = 70 + node.lane * 120
+    positions.set(node.id, { x: node.x, y: node.y })
+  })
+  const renderedLanes = visibleLanes.map(i => ({ name: laneNames[i], color: laneColors[i] }))
+  const historicalLabels = renderedLanes.flatMap((lane, index) => {
+    if (index === 0 || lane.name.startsWith('Линия ')) return []
+    const tip = nodes.filter(n => n.lane === index).sort((a, b) => b.x - a.x)[0]
+    return tip && !branches.some(b => b.name === lane.name && b.id === tip.id) ? [{ id: tip.id, name: lane.name, color: lane.color }] : []
+  })
   nodes.sort((a, b) => a.x - b.x || a.y - b.y)
-  return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, laneNames.length * 120 + 20), lanes: laneNames.map((name, i) => ({ name, color: laneColors[i] })) }
+  return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, renderedLanes.length * 120 + 20), historicalLabels, lanes: renderedLanes }
 }

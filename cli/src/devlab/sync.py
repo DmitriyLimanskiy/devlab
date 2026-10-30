@@ -1,4 +1,4 @@
-"""Очередь последнего снимка и независимая от терминала HTTP-доставка."""
+"""Очередь последнего снимка и независимая от терминала HTTP-доставка"""
 import hashlib
 import json
 import os
@@ -32,7 +32,7 @@ class SnapshotSender:
         self.thread.start()
 
     def persist(self):
-        """Вызывается под condition; ключ не входит в сохраняемое тело запроса."""
+        """Вызывается под condition; ключ не входит в сохраняемое тело запроса"""
         temporary = None
         try:
             self.pending_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -44,8 +44,8 @@ class SnapshotSender:
                 os.fsync(stream.fileno())
             os.replace(temporary, self.pending_path)
             self.storage_error = None
-            # После нового подключения актуальное чтение заменяет старую очередь.
-            # Старые поколения нельзя воспроизводить с новым ключом.
+            # После нового подключения актуальное чтение заменяет старую очередь
+            # Старые поколения нельзя воспроизводить с новым ключом
             for old in self.pending_path.parent.glob(self.identity + '-*.json'):
                 if old != self.pending_path:
                     try:
@@ -53,7 +53,7 @@ class SnapshotSender:
                     except OSError:
                         pass
         except OSError:
-            self.storage_error = 'Не удалось сохранить неподтверждённый снимок на диск.'
+            self.storage_error = 'Не удалось сохранить неподтверждённый снимок на диск'
         finally:
             if temporary is not None:
                 try:
@@ -62,7 +62,7 @@ class SnapshotSender:
                     pass
 
     def publish(self, state):
-        # Снимок копируется: новые состояния не должны менять тело повторного запроса.
+        # Снимок копируется: новые состояния не должны менять тело повторного запроса
         canonical = json.dumps(state, sort_keys=True, ensure_ascii=True)
         with self.condition:
             if self.closed or canonical == self.last_state:
@@ -91,7 +91,7 @@ class SnapshotSender:
                 with self.condition:
                     self.error = str(error)
                     if not error.retryable:
-                        # Не менять поколение автоматически при отзыве ключа/конфликте.
+                        # Не менять поколение автоматически при отзыве ключа/конфликте
                         self.halted = True
                         continue
                     self.condition.wait_for(lambda: self.closed or self.pending is not payload, timeout=delay)
@@ -99,13 +99,13 @@ class SnapshotSender:
             else:
                 with self.condition:
                     self.error = None
-                    # Позднее подтверждение старой версии не удаляет новую из очереди.
+                    # Позднее подтверждение старой версии не удаляет новую из очереди
                     if self.pending is payload:
                         self.pending = None
                         try:
                             self.pending_path.unlink(missing_ok=True)
                         except OSError:
-                            self.storage_error = 'Подтверждённый файл очереди не удалось удалить.'
+                            self.storage_error = 'Подтверждённый файл очереди не удалось удалить'
                     self.condition.notify_all()
                 delay = self.retry_delay
 
@@ -113,8 +113,8 @@ class SnapshotSender:
         with self.condition:
             if self.closed:
                 return
-            # Дать последнему снимку короткую возможность уйти при нормальной сети.
-            # При сбое ограничить ожидание и оставить файл для следующего запуска.
+            # Дать последнему снимку короткую возможность уйти при нормальной сети
+            # При сбое ограничить ожидание и оставить файл для следующего запуска
             if self.pending is not None and not self.halted:
                 self.condition.wait_for(lambda: self.pending is None or self.halted,
                                         timeout=self.client.timeout + 0.2)
@@ -126,7 +126,7 @@ class SnapshotSender:
         with self.condition:
             if self.pending is None:
                 return None
-            detail = self.error or 'Снимок ещё не подтверждён.'
+            detail = self.error or 'Снимок ещё не подтверждён'
             if self.storage_error:
                 return f'{detail} {self.storage_error}'
             return f'{detail} Последний снимок сохранён: {self.pending_path}'

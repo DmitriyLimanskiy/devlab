@@ -1,15 +1,20 @@
-from app.services.practice_events import events
 import hashlib
 import secrets
 from datetime import UTC, datetime
 from typing import Annotated
 
-from app.api.schemas.cli import CliConnectReq, CliConnectRes, CliPresenceReq, CliPresenceRes
-from app.services.cli_presence import presence
+from app.api.schemas.cli import (
+    CliConnectReq,
+    CliConnectRes,
+    CliPresenceReq,
+    CliPresenceRes,
+)
 from app.api.schemas.snapshot import SnapshotReq, SnapshotRes
 from app.db.models.course import Course
 from app.db.models.practice import PracticeSession, PracticeSnapshot
 from app.db.session import get_session
+from app.services.cli_presence import presence
+from app.services.practice_events import events
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -168,7 +173,9 @@ async def cli_heartbeat(
     await db.commit()
     if presence.touch(request.session_id, request.generation):
         events.publish(request.session_id)
-    return CliPresenceRes(session_id=request.session_id, generation=request.generation, connected=True)
+    return CliPresenceRes(
+        session_id=request.session_id, generation=request.generation, connected=True
+    )
 
 
 @router.post("/cli-disconnect", response_model=CliPresenceRes)
@@ -181,4 +188,6 @@ async def cli_disconnect(
     await db.commit()
     if presence.remove(request.session_id, request.generation):
         events.publish(request.session_id)
-    return CliPresenceRes(session_id=request.session_id, generation=request.generation, connected=False)
+    return CliPresenceRes(
+        session_id=request.session_id, generation=request.generation, connected=False
+    )

@@ -1,4 +1,4 @@
-"""Диалог выбора курса и подключения перед выбором папки."""
+"""Диалог выбора курса и подключения перед выбором папки"""
 from .api import ApiError
 
 
@@ -12,7 +12,7 @@ def choose_connection(client):
             if answer == 'r':
                 continue
             return None
-        print('  Выберите курс:')
+        print('\n  Выберите курс:')
         for number, course in enumerate(courses, 1):
             print(f"  {number}. {course['title']}")
         print('  0. Локальная работа без сервера')
@@ -22,7 +22,7 @@ def choose_connection(client):
         if answer in {'', '0'}:
             return None
         if not answer.isdecimal() or not 1 <= int(answer) <= len(courses):
-            print('  Выберите номер из списка.')
+            print('  Выберите номер из списка')
             continue
         course = courses[int(answer) - 1]
         try:
@@ -30,5 +30,5 @@ def choose_connection(client):
         except ApiError as error:
             print(f'  {error}')
             continue
-        print(f"  Подключён курс {course['title']}. Сессия: {connection.session_id}, поколение: {connection.generation}.")
+        print(f"  Подключён курс {course['title']}. Сессия: {connection.session_id}, поколение: {connection.generation}")
         return connection

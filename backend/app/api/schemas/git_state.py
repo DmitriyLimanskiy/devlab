@@ -32,7 +32,7 @@ class CommitState(StateModel):
 
 
 class FileState(StateModel):
-    """Два столбца porcelain: индекс и рабочее дерево; пробел значим."""
+    """Два столбца porcelain: индекс и рабочее дерево; пробел значим"""
 
     path: NonEmptyString
     index: FileStatus
@@ -57,8 +57,8 @@ class RepositoryState(StateModel):
     branch: NonEmptyString | None
     head_kind: Literal["unborn", "branch", "detached"]
     files: list[FileState]
-    # Формат CLI: "refs/heads/main <полный хеш>" или "refs/tags/v1 <хеш>".
-    # Хеш annotated tag может указывать на объект тега, а не на коммит.
+    # Формат CLI: "refs/heads/main <полный хеш>" или "refs/tags/v1 <хеш>"
+    # Хеш annotated tag может указывать на объект тега, а не на коммит
     refs: list[Reference]
     commits: list[CommitState]
     history_limit: int = Field(gt=0, le=200)
@@ -78,7 +78,7 @@ class RepositoryState(StateModel):
             raise ValueError("Для detached HEAD нужен head без branch")
         if len(self.commits) > self.history_limit:
             raise ValueError("Число коммитов превышает history_limit")
-        # Родители могут находиться вне ограниченной истории.
+        # Родители могут находиться вне ограниченной истории
         return self
 
 

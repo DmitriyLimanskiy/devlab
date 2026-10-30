@@ -1,4 +1,4 @@
-"""HTTP-клиент подключения CLI. Не зависит от PTY и локального наблюдения."""
+"""HTTP-клиент подключения CLI. Не зависит от PTY и локального наблюдения"""
 from dataclasses import dataclass, field
 import json
 from urllib.error import HTTPError, URLError
@@ -8,7 +8,7 @@ from uuid import UUID
 
 
 class ApiError(Exception):
-    """Сообщение, безопасное для вывода без ключа и тела HTTP-ответа."""
+    """Сообщение, безопасное для вывода без ключа и тела HTTP-ответа"""
 
     def __init__(self, message, *, retryable=True):
         super().__init__(message)
@@ -33,7 +33,7 @@ class ApiClient:
             parsed = urlsplit(server_url)
             parsed.port
         except ValueError:
-            raise ApiError('Некорректный адрес DEVLAB_SERVER_URL.') from None
+            raise ApiError('Некорректный адрес DEVLAB_SERVER_URL') from None
         if (parsed.scheme not in {'http', 'https'} or not parsed.hostname or
                 parsed.username or parsed.password or parsed.query or parsed.fragment or
                 parsed.path not in {'', '/'}):
@@ -60,17 +60,17 @@ class ApiClient:
         except HTTPError as error:
             error.close()
             if error.code == 404 and path == '/cli-connect':
-                raise ApiError('Нет активной сессии. Откройте выбранный курс в браузере и повторите подключение.') from None
+                raise ApiError('Нет активной сессии. Откройте выбранный курс в браузере и повторите подключение') from None
             if error.code == 401:
-                raise ApiError('Ключ подключения больше не действует.', retryable=False) from None
+                raise ApiError('Ключ подключения больше не действует', retryable=False) from None
             if error.code == 409:
-                raise ApiError('Сервер отклонил поколение или версию снимка.', retryable=False) from None
-            raise ApiError(f'Сервер вернул HTTP {error.code}.',
+                raise ApiError('Сервер отклонил поколение или версию снимка', retryable=False) from None
+            raise ApiError(f'Сервер вернул HTTP {error.code}',
                            retryable=error.code >= 500 or error.code in {408, 429}) from None
         except (URLError, OSError, TimeoutError):
-            raise ApiError('Сервер недоступен или не ответил вовремя.') from None
+            raise ApiError('Сервер недоступен или не ответил вовремя') from None
         except (ValueError, UnicodeError):
-            raise ApiError('Сервер вернул некорректный JSON.') from None
+            raise ApiError('Сервер вернул некорректный JSON') from None
 
     def catalog(self):
         data = self.request('/catalog')
@@ -80,9 +80,9 @@ class ApiClient:
             type(course.get('position')) is not int or course['position'] < 1
             for course in data
         ):
-            raise ApiError('Некорректный формат каталога.')
+            raise ApiError('Некорректный формат каталога')
         if len({course['id'] for course in data}) != len(data):
-            raise ApiError('Каталог содержит повторные курсы.')
+            raise ApiError('Каталог содержит повторные курсы')
         return sorted(data, key=lambda course: course['position'])
 
     def connect(self, slug):
@@ -95,7 +95,7 @@ class ApiClient:
             if not isinstance(key, str) or not key or any(c.isspace() for c in key):
                 raise ValueError
         except (KeyError, ValueError, TypeError, AttributeError):
-            raise ApiError('Некорректный ответ подключения CLI.') from None
+            raise ApiError('Некорректный ответ подключения CLI') from None
         return Connection(session_id, generation, key)
 
     def send_snapshot(self, connection, state, version):
@@ -105,7 +105,7 @@ class ApiClient:
         if (not isinstance(data, dict) or data.get('session_id') != connection.session_id or
                 type(data.get('generation')) is not int or data['generation'] != connection.generation or
                 type(data.get('version')) is not int or data['version'] != version):
-            raise ApiError('Сервер не подтвердил отправленную версию снимка.')
+            raise ApiError('Сервер не подтвердил отправленную версию снимка')
 
     def send_initial(self, connection, state):
         self.send_snapshot(connection, state, 1)

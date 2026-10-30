@@ -1,4 +1,4 @@
-"""Проверки настоящей сессии bash во вложенном PTY (macOS)."""
+"""Проверки настоящей сессии bash во вложенном PTY (macOS)"""
 
 import fcntl
 import os
@@ -53,7 +53,7 @@ class TerminalTest(unittest.TestCase):
     def assert_terminal_restored(self):
         restored = termios.tcgetattr(self.slave)
         # macOS выставляет PENDIN при возврате в канонический режим:
-        # это служебный флаг повторной обработки ожидающего ввода.
+        # это служебный флаг повторной обработки ожидающего ввода
         restored[3] &= ~getattr(termios, "PENDIN", 0)
         original = self.original.copy()
         original[3] &= ~getattr(termios, "PENDIN", 0)
@@ -72,14 +72,14 @@ class TerminalTest(unittest.TestCase):
         os.write(self.master, b"\x03")
         self.read_until(b" > ")
         os.write(self.master, b"exit 7\n")
-        self.read_until("Сессия DevLab завершена.".encode())
+        self.read_until("Сессия DevLab завершена".encode())
         self.assertEqual(self.process.wait(timeout=5), 7)
         self.assertTrue(self.snapshot.exists())
         self.assert_terminal_restored()
 
     def test_eof_exits_and_restores_terminal(self):
         os.write(self.master, b"\x04")
-        self.read_until("Сессия DevLab завершена.".encode())
+        self.read_until("Сессия DevLab завершена".encode())
         self.assertEqual(self.process.wait(timeout=5), 0)
         self.assert_terminal_restored()
 

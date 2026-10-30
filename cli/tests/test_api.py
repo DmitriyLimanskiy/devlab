@@ -1,4 +1,4 @@
-"""HTTP-проверки CLI на локальном сервере, без записи ключей в проект."""
+"""HTTP-проверки CLI на локальном сервере, без записи ключей в проект"""
 import contextlib
 import io
 import json
@@ -109,6 +109,9 @@ class ApiTest(unittest.TestCase):
                 self.assertEqual(self.records[-1][1], '/api/v1/cli-connect')
                 os.write(master, directory.encode() + b'\n')
                 until(b' > ')
+                os.write(master, b"printf 'CLI-SPACING\\n'\n")
+                until(b' > ')
+                self.assertRegex(bytes(output), rb'CLI-SPACING\r*\n\r*\n')
                 deadline = time.monotonic() + 5
                 while not any(r[1] == '/api/v1/cli-send-snapshot' for r in self.records) and time.monotonic() < deadline:
                     time.sleep(0.05)
@@ -135,7 +138,7 @@ class ApiTest(unittest.TestCase):
                     self.assertGreater(modified['version'], committed['version'])
                     self.assertFalse(any('.sync-cache' in item['path'] for item in modified['state']['files']))
                 os.write(master, b'exit\n')
-                until('Сессия DevLab завершена.'.encode())
+                until('Сессия DevLab завершена'.encode())
                 self.assertEqual(process.wait(timeout=5), 0)
                 self.assertTrue(any(r[1] == '/api/v1/cli-send-snapshot' for r in self.records))
                 self.assertTrue(any(r[1] == '/api/v1/cli-heartbeat' for r in self.records))

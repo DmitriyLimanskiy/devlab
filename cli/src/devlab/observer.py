@@ -1,4 +1,4 @@
-"""Локальное наблюдение: события bash, опрос файлов и периодическая сверка."""
+"""Локальное наблюдение: события bash, опрос файлов и периодическая сверка"""
 import json
 import os
 import select
@@ -48,7 +48,7 @@ class Observer:
                 state['files'] = [item for item in state['files'] if item['path'] != relative
                                   and not (internal and item['path'].startswith(internal))]
         except Exception as error:
-            # Временная ошибка не заменяет последнее успешно прочитанное состояние.
+            # Временная ошибка не заменяет последнее успешно прочитанное состояние
             self.error = str(error)
             return
         self.error = None

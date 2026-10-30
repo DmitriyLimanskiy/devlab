@@ -48,7 +48,7 @@ export function usePracticeState(sessionId) {
       }
       socket.onerror = () => socket.close()
     }
-    // HTTP работает и при недоступном WebSocket; сверка восстанавливает пропуски.
+    // HTTP работает и при недоступном WebSocket; сверка восстанавливает пропуски
     refresh()
     connect()
     poll = setInterval(refresh, 10000)

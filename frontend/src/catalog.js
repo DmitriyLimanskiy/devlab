@@ -1,4 +1,4 @@
-// Контракт GET /api/v1/catalog. id — публичный slug, а не числовой ключ БД.
+// Контракт GET /api/v1/catalog. id — публичный slug, а не числовой ключ БД
 export const courseStatusLabels = {
   planned: 'В разработке',
   available: 'Доступен',
@@ -14,6 +14,6 @@ export function parseCatalog(data) {
   ) || new Set(data.map(course => course.id)).size !== data.length) {
     throw new Error('Некорректный ответ каталога')
   }
-  // При одинаковых позициях сохраняем порядок, полученный от backend.
+  // При одинаковых позициях сохраняем порядок, полученный от backend
   return [...data].sort((a, b) => a.position - b.position)
 }

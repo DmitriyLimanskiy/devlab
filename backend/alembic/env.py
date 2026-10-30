@@ -10,7 +10,7 @@ from app.db import models  # Регистрация всех таблиц в met
 
 
 def offline():
-    # Offline SQL не требует ни подключения, ни настоящих секретов.
+    # Offline SQL не требует ни подключения, ни настоящих секретов
     context.configure(url='postgresql+psycopg://', target_metadata=Base.metadata,
                       literal_binds=True, dialect_opts={'paramstyle': 'named'}, compare_type=True)
     with context.begin_transaction():

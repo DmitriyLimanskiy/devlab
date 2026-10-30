@@ -1,4 +1,4 @@
-"""Чтение Git без shell и без содержимого рабочих файлов."""
+"""Чтение Git без shell и без содержимого рабочих файлов"""
 import os
 import subprocess
 from pathlib import Path
@@ -28,7 +28,7 @@ def read_state(folder):
     try:
         root = _text(git(folder, 'rev-parse', '--show-toplevel')).strip()
     except RuntimeError:
-        # Отличаем отсутствие репозитория от ошибки чтения существующего .git.
+        # Отличаем отсутствие репозитория от ошибки чтения существующего .git
         if any((parent / '.git').exists() for parent in [folder, *folder.parents]):
             raise
         return {'kind': 'no_repository', 'path': str(folder)}

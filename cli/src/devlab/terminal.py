@@ -1,4 +1,4 @@
-"""Интерактивный bash через PTY: ввод, вывод и размер терминала."""
+"""Интерактивный bash через PTY: ввод, вывод и размер терминала"""
 
 import errno
 import fcntl
@@ -37,7 +37,7 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sen
             os._exit(127)
 
     os.close(notify)
-    # Потоки запускаются после fork: не наследуем блокировки фонового отправителя.
+    # Потоки запускаются после fork: не наследуем блокировки фонового отправителя
     presence = None
     if sender is not None:
         from .presence import PresenceReporter
@@ -85,7 +85,7 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sen
         signal.signal(signal.SIGWINCH, previous)
         os.close(master)
         if not finished:
-            # Закрытие master посылает SIGHUP терминальной сессии.
+            # Закрытие master посылает SIGHUP терминальной сессии
             os.waitpid(pid, 0)
         observer.close()
         os.close(events)

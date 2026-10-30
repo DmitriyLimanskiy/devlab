@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { GitBranch, GitCommitHorizontal, Folder, Layers, CircleDashed, ChevronRight } from 'lucide-react'
+import { layoutMemory, readLayoutMemory, saveLayoutMemory } from './graphMemory'
 import { commitCount, graphLayout } from './practiceState'
 
 const statuses = { M: 'Изменён', A: 'Добавлен', D: 'Удалён', R: 'Переименован', C: 'Скопирован', U: 'Конфликт', '?': 'Не отслеживается', '!': 'Игнорируется', T: 'Изменён тип', X: 'Неизвестный статус' }
@@ -7,9 +8,15 @@ function Empty({ children }) { return <div className="repo-empty"><CircleDashed 
 function Panel({ icon: Icon, title, detail, type, children }) {
   return <section className={`repo-panel repo-panel-${type}`}><header><h2><Icon size={17} />{title}</h2><span>{detail}</span></header>{children}</section>
 }
-function History({ state, previous }) {
+function History({ state, previous, storageKey }) {
+  const memory = useRef(readLayoutMemory(storageKey))
+  const graph = graphLayout(state.commits, state.refs, state.head, memory.current)
+  useLayoutEffect(() => {
+    // Временно пустая история не стирает наблюдение при ошибке чтения
+    if (graph.nodes.length) { memory.current = layoutMemory(graph); saveLayoutMemory(storageKey, graph) }
+  }, [graph, storageKey])
   if (!state.commits.length) return <Empty>Пока нет коммитов · HEAD → {state.branch ?? '—'}</Empty>
-  const { nodes, positions, width, height, branchColors } = graphLayout(state.commits, state.refs, state.head)
+  const { nodes, positions, width, height, branchColors, historicalLabels } = graph
   const refs = state.refs.map(ref => { const split = ref.lastIndexOf(' '); return { name: ref.slice(0, split).replace('refs/heads/', '').replace('refs/tags/', 'tag: '), id: ref.slice(split + 1) } })
   const outside = refs.filter(ref => !positions.has(ref.id))
   const byId = new Map(nodes.map(n => [n.id, n]))
@@ -28,7 +35,7 @@ function History({ state, previous }) {
           const labels = refs.filter(ref => ref.id === node.id).map(ref => ref.name)
           const changed = previous && (!previous.commits.some(c => c.id === node.id) || (node.id === state.head && previous.head !== state.head) || previous.refs.filter(r => r.endsWith(` ${node.id}`)).join() !== state.refs.filter(r => r.endsWith(` ${node.id}`)).join())
           return <li key={node.id} className={changed ? 'git-change' : ''} style={{ left: node.x, top: node.y, '--branch-color': node.color }}>
-            <div className="commit-labels">{node.id === state.head && <span className="ref-label head-label">HEAD</span>}{labels.map(label => <span title={label} className="ref-label" style={{ color: branchColors[label] ?? 'var(--warning)' }} key={label}>{label}</span>)}</div>
+            <div className="commit-labels">{node.id === state.head && <span className="ref-label head-label">HEAD</span>}{labels.map(label => <span title={label} className="ref-label" style={{ color: branchColors[label] ?? 'var(--warning)' }} key={label}>{label}</span>)}{historicalLabels.filter(label => label.id === node.id).map(label => <span className="ref-label historical-ref" key={`history-${label.name}`} style={{ color: label.color }} title="Ранее наблюдавшаяся линия ветки, текущий указатель показан отдельно">{label.name} · история</span>)}</div>
             <code title={node.id}>{node.id.slice(0, 8)}</code>
             {node.parents.length > 1 && <span className="commit-detail">Слияние</span>}
           </li>
@@ -69,7 +76,7 @@ export function GitRepository({ snapshot }) {
   const empty = !current ? 'Запусти devlab и выбери папку' : current.kind === 'no_repository' ? 'В выбранной папке нет репозитория Git · выполни git init' : 'Не удалось прочитать Git · ожидаем обновление'
   return <div ref={root} className="git-repository">
     {repository && <div className="git-summary"><span><GitBranch size={15} />{current.head_kind === 'detached' ? `Detached HEAD · ${current.head.slice(0, 8)}` : current.branch}</span><span>{current.head_kind === 'unborn' ? 'Ветка без коммитов' : commitCount(current.commits.length)}</span>{current.operations.map(operation => <span className="operation" key={operation}>{operation}</span>)}</div>}
-    <Panel icon={GitCommitHorizontal} title="История репозитория" detail="Коммиты, ветки и HEAD" type="history">{repository ? <History state={current} previous={previous} /> : <Empty>{empty}</Empty>}</Panel>
+    <Panel icon={GitCommitHorizontal} title="История репозитория" detail="Коммиты, ветки и HEAD" type="history">{repository ? <History key={`${snapshot.session_id}:${current.path}`} storageKey={snapshot.session_id ? `devlab:git-layout:${snapshot.session_id}:${current.path}` : null} state={current} previous={previous} /> : <Empty>{empty}</Empty>}</Panel>
     <div className="git-file-flow">
       <Panel icon={Folder} title="Рабочая папка" detail="Working directory" type="files">{repository ? <Files files={current.files} column="worktree" previous={previous} /> : <Empty>Нет данных рабочих файлов</Empty>}</Panel>
       <ChevronRight className="staging-chevron" size={28} strokeWidth={1.5} aria-hidden="true" />
