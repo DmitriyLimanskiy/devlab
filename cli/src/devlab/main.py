@@ -3,11 +3,14 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 from .project import ensure_state_ignored
+from .api import ApiClient, ApiError
+from .connection import choose_connection
 
 
 def main() -> int:
@@ -35,6 +38,21 @@ def main() -> int:
     print(f"\n{accent}  ◇  D E V L A B{reset}  /  0.1.0")
     print("  Локальная среда · bash")
     print("  Выход: exit или Ctrl+D\n", flush=True)
+
+    client = connection = None
+    try:
+        if os.environ.get('DEVLAB_OFFLINE') != '1':
+            try:
+                client = ApiClient(os.environ.get('DEVLAB_SERVER_URL', 'http://127.0.0.1:8080'))
+            except ApiError as error:
+                print(f"  {error} Продолжаем локально.")
+            if client is not None:
+                connection = choose_connection(client)
+        if connection is None:
+            print("  Локальный режим.\n")
+    except (EOFError, KeyboardInterrupt):
+        print("\n  Запуск отменён.")
+        return 0
 
     while True:
         try:
@@ -85,6 +103,20 @@ def main() -> int:
         rc.write_text(
             f"PS1='{prompt}'\nPS2='... > '\nunset HISTFILE\n", encoding="utf-8"
         )
+        if connection is not None:
+            from .git_state import stable_state, UnstableRepository
+            try:
+                initial = stable_state(folder)
+                if initial['kind'] == 'repository':
+                    relative = os.path.relpath(snapshot, initial['path'])
+                    initial['files'] = [item for item in initial['files'] if item['path'] != relative]
+                client.send_initial(connection, initial)
+                print("  Начальный снимок подтверждён сервером (версия 1).\n", flush=True)
+            except (KeyboardInterrupt, EOFError):
+                print("\n  Запуск отменён.")
+                return 0
+            except (ApiError, OSError, RuntimeError, subprocess.TimeoutExpired, UnstableRepository) as error:
+                print(f"  Начальный снимок не доставлен: {error}\n  Bash продолжит локальную работу.\n", flush=True)
         try:
             status = run_bash(bash, str(rc), folder, snapshot, overwrite)
         except OSError as error:

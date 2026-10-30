@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from app.db.session import get_session
 from app.api.schemas.git_course import GitCourseRes
 from app.db.models.course import Course, CourseStep
 from app.db.models.practice import PracticeSession
+from app.db.session import get_session
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert

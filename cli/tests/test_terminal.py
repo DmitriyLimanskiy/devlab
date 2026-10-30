@@ -24,7 +24,7 @@ class TerminalTest(unittest.TestCase):
         self.addCleanup(self.project.cleanup)
         self.master, self.slave = pty.openpty()
         self.original = termios.tcgetattr(self.slave)
-        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"), NO_COLOR="1")
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"), NO_COLOR="1", DEVLAB_OFFLINE="1")
         self.process = subprocess.Popen(
             [sys.executable, "-m", "devlab"], stdin=self.slave,
             stdout=self.slave, stderr=self.slave, env=env,

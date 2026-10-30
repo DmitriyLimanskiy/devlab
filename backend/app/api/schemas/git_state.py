@@ -2,7 +2,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-# Git может использовать SHA-1 или SHA-256; сокращённые хеши не принимаются.
+# Git может использовать SHA-1 или SHA-256; сокращённые хеши не принимаются
 ObjectId = Annotated[str, StringConstraints(pattern=r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")]
 NonEmptyString = Annotated[str, StringConstraints(min_length=1)]
 FileStatus = Literal[" ", "M", "A", "D", "R", "C", "U", "?", "!", "T", "X"]

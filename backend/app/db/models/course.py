@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 
+from app.db.base import Base
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
@@ -15,8 +16,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 
 class Timestamps:

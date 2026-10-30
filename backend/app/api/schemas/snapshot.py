@@ -14,3 +14,9 @@ class SnapshotReq(BaseModel):
     generation: int = Field(gt=0, strict=True)
     version: int = Field(gt=0, strict=True)
     state: GitState
+
+
+class SnapshotRes(BaseModel):
+    session_id: UUID
+    generation: int
+    version: int
