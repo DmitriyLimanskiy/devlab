@@ -10,9 +10,11 @@ from pathlib import Path
 from .git_state import stable_state
 
 
-def fingerprint(folder, excluded=None):
+def fingerprint(folder, excluded=None, internal_dir=None):
     entries = []
     for root, directories, files in os.walk(folder):
+        if internal_dir is not None:
+            directories[:] = [name for name in directories if Path(root) / name != internal_dir]
         for name in directories + files:
             path = Path(root) / name
             if excluded is not None and path == excluded:
@@ -26,9 +28,11 @@ def fingerprint(folder, excluded=None):
 
 
 class Observer:
-    def __init__(self, folder, events, snapshot, status_path=None):
+    def __init__(self, folder, events, snapshot, status_path=None, on_state=None, internal_dir=None):
         self.folder, self.events, self.snapshot = Path(folder).resolve(), events, Path(snapshot).resolve()
         self.status_path = Path(status_path) if status_path else self.snapshot.with_name("command-status.json")
+        self.internal_dir = Path(internal_dir).resolve() if internal_dir is not None else None
+        self.on_state = on_state
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.state = None
@@ -40,7 +44,9 @@ class Observer:
             state = stable_state(self.folder)
             if state['kind'] == 'repository':
                 relative = os.path.relpath(self.snapshot, state['path'])
-                state['files'] = [item for item in state['files'] if item['path'] != relative]
+                internal = (os.path.relpath(self.internal_dir, state['path']) + '/') if self.internal_dir else None
+                state['files'] = [item for item in state['files'] if item['path'] != relative
+                                  and not (internal and item['path'].startswith(internal))]
         except Exception as error:
             # Временная ошибка не заменяет последнее успешно прочитанное состояние.
             self.error = str(error)
@@ -53,6 +59,8 @@ class Observer:
                 self.version = version if type(version) is int and version >= 0 else 0
             except (OSError, ValueError, AttributeError):
                 self.version = 0
+            if self.on_state is not None:
+                self.on_state(state)
             return
         if state != self.state:
             self.version += 1
@@ -68,6 +76,8 @@ class Observer:
                 if temporary is not None:
                     temporary.unlink(missing_ok=True)
             self.state = state
+            if self.on_state is not None:
+                self.on_state(state)
         if command_status is not None:
             self.status_path.write_text(json.dumps(
                 {'exit_code': command_status, 'completed_at': time.time()}))
@@ -89,7 +99,7 @@ class Observer:
                     if line.isdigit():
                         self.refresh(int(line))
             now = time.monotonic()
-            current = fingerprint(self.folder, self.snapshot)
+            current = fingerprint(self.folder, self.snapshot, self.internal_dir)
             if current != previous:
                 previous = current
                 pending = now + 0.3

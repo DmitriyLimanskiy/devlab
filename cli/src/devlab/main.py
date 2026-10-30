@@ -3,7 +3,6 @@
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -103,22 +102,13 @@ def main() -> int:
         rc.write_text(
             f"PS1='{prompt}'\nPS2='... > '\nunset HISTFILE\n", encoding="utf-8"
         )
+        sender = None
         if connection is not None:
-            from .git_state import stable_state, UnstableRepository
-            try:
-                initial = stable_state(folder)
-                if initial['kind'] == 'repository':
-                    relative = os.path.relpath(snapshot, initial['path'])
-                    initial['files'] = [item for item in initial['files'] if item['path'] != relative]
-                client.send_initial(connection, initial)
-                print("  Начальный снимок подтверждён сервером (версия 1).\n", flush=True)
-            except (KeyboardInterrupt, EOFError):
-                print("\n  Запуск отменён.")
-                return 0
-            except (ApiError, OSError, RuntimeError, subprocess.TimeoutExpired, UnstableRepository) as error:
-                print(f"  Начальный снимок не доставлен: {error}\n  Bash продолжит локальную работу.\n", flush=True)
+            from .sync import SnapshotSender
+            sender = SnapshotSender(client, connection, folder)
+            print("  Синхронизация будет работать в фоне.\n", flush=True)
         try:
-            status = run_bash(bash, str(rc), folder, snapshot, overwrite)
+            status = run_bash(bash, str(rc), folder, snapshot, overwrite, sender=sender)
         except OSError as error:
             print(
                 f"DevLab: не удалось выполнить терминальную сессию: {error}",

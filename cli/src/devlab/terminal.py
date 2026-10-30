@@ -16,7 +16,7 @@ def _write_all(fd: int, data: bytes) -> None:
         data = data[os.write(fd, data):]
 
 
-def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True) -> int:
+def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sender=None) -> int:
     stdin, stdout = sys.stdin.fileno(), sys.stdout.fileno()
     original = termios.tcgetattr(stdin)
     from .observer import Observer
@@ -37,7 +37,12 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True) -> 
             os._exit(127)
 
     os.close(notify)
-    observer = Observer(folder, events, snapshot, os.path.join(os.path.dirname(rc_path), "command-status.json"))
+    # Потоки запускаются после fork: не наследуем блокировки фонового отправителя.
+    if sender is not None:
+        sender.start()
+    observer = Observer(folder, events, snapshot, os.path.join(os.path.dirname(rc_path), "command-status.json"),
+                        on_state=sender.publish if sender is not None else None,
+                        internal_dir=sender.pending_path.parent if sender is not None else None)
     observer.preserve_existing = not write_snapshot
     observer.thread.start()
 
@@ -80,3 +85,7 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True) -> 
             os.waitpid(pid, 0)
         observer.close()
         os.close(events)
+        if sender is not None:
+            sender.close()
+            if message := sender.summary():
+                print(f"\n  Синхронизация: {message}", flush=True)

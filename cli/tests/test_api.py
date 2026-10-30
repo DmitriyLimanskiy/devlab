@@ -55,7 +55,7 @@ class ApiTest(unittest.TestCase):
                 else:
                     self.respond(200, {'session_id': body['session_id'],
                                       'generation': body['generation'],
-                                      'version': 99 if owner.bad_ack else 1})
+                                      'version': 99 if owner.bad_ack else body['version']})
 
         self.server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -82,11 +82,11 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(sent[2]['version'], 1)
         self.assertEqual(sent[2]['generation'], 2)
 
-    def run_cli_flow(self):
+    def run_cli_flow(self, continuous=False):
         master, slave = pty.openpty()
         with tempfile.TemporaryDirectory() as directory:
             env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / 'src'),
-                       DEVLAB_SERVER_URL=self.client.server_url, NO_COLOR='1')
+                       DEVLAB_SERVER_URL=self.client.server_url, DEVLAB_STATE_DIR=str(Path(directory) / '.sync-cache'), NO_COLOR='1')
             env.pop('DEVLAB_OFFLINE', None)
             process = subprocess.Popen([sys.executable, '-m', 'devlab'], stdin=slave,
                                        stdout=slave, stderr=slave, env=env)
@@ -106,6 +106,31 @@ class ApiTest(unittest.TestCase):
                 self.assertEqual(self.records[-1][1], '/api/v1/cli-connect')
                 os.write(master, directory.encode() + b'\n')
                 until(b' > ')
+                deadline = time.monotonic() + 5
+                while not any(r[1] == '/api/v1/cli-send-snapshot' for r in self.records) and time.monotonic() < deadline:
+                    time.sleep(0.05)
+                if continuous:
+                    os.write(master, b"git init -b main && printf one > file && git add file && git -c user.name=Test -c user.email=test@example.invalid commit -m first\n")
+                    until(b' > ')
+                    def wait_state(predicate):
+                        deadline = time.monotonic() + 8
+                        while time.monotonic() < deadline:
+                            sent = [r[2] for r in self.records if r[1] == '/api/v1/cli-send-snapshot']
+                            if sent and predicate(sent[-1]['state']):
+                                return sent[-1]
+                            time.sleep(0.05)
+                        self.fail('Изменение Git не отправлено')
+                    committed = wait_state(lambda state: state.get('head') is not None)
+                    self.assertGreater(committed['version'], 1)
+                    os.write(master, b'git status --short\n')
+                    until(b' > ')
+                    time.sleep(0.8)
+                    sent = [r[2] for r in self.records if r[1] == '/api/v1/cli-send-snapshot']
+                    self.assertEqual(sent[-1]['version'], committed['version'])
+                    Path(directory, 'file').write_text('IDE edit')
+                    modified = wait_state(lambda state: any(item['path'] == 'file' and item['worktree'] == 'M' for item in state.get('files', [])))
+                    self.assertGreater(modified['version'], committed['version'])
+                    self.assertFalse(any('.sync-cache' in item['path'] for item in modified['state']['files']))
                 os.write(master, b'exit\n')
                 until('Сессия DevLab завершена.'.encode())
                 self.assertEqual(process.wait(timeout=5), 0)
@@ -129,6 +154,10 @@ class ApiTest(unittest.TestCase):
     def test_initial_delivery_error_keeps_shell_working(self):
         self.bad_ack = True
         self.run_cli_flow()
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'Терминальная версия для macOS')
+    def test_git_commands_and_external_edits_are_sent(self):
+        self.run_cli_flow(continuous=True)
 
     def test_missing_session_allows_local_mode(self):
         self.connect_status = 404

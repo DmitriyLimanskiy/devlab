@@ -10,6 +10,10 @@ from uuid import UUID
 class ApiError(Exception):
     """Сообщение, безопасное для вывода без ключа и тела HTTP-ответа."""
 
+    def __init__(self, message, *, retryable=True):
+        super().__init__(message)
+        self.retryable = retryable
+
 
 class NoRedirects(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -58,10 +62,11 @@ class ApiClient:
             if error.code == 404 and path == '/cli-connect':
                 raise ApiError('Нет активной сессии. Откройте выбранный курс в браузере и повторите подключение.') from None
             if error.code == 401:
-                raise ApiError('Ключ подключения больше не действует.') from None
+                raise ApiError('Ключ подключения больше не действует.', retryable=False) from None
             if error.code == 409:
-                raise ApiError('Сервер отклонил поколение или версию снимка.') from None
-            raise ApiError(f'Сервер вернул HTTP {error.code}.') from None
+                raise ApiError('Сервер отклонил поколение или версию снимка.', retryable=False) from None
+            raise ApiError(f'Сервер вернул HTTP {error.code}.',
+                           retryable=error.code >= 500 or error.code in {408, 429}) from None
         except (URLError, OSError, TimeoutError):
             raise ApiError('Сервер недоступен или не ответил вовремя.') from None
         except (ValueError, UnicodeError):
@@ -93,11 +98,14 @@ class ApiClient:
             raise ApiError('Некорректный ответ подключения CLI.') from None
         return Connection(session_id, generation, key)
 
-    def send_initial(self, connection, state):
+    def send_snapshot(self, connection, state, version):
         payload = {'schema_version': 1, 'session_id': connection.session_id,
-                   'generation': connection.generation, 'version': 1, 'state': state}
+                   'generation': connection.generation, 'version': version, 'state': state}
         data = self.request('/cli-send-snapshot', payload, connection.key)
         if (not isinstance(data, dict) or data.get('session_id') != connection.session_id or
                 type(data.get('generation')) is not int or data['generation'] != connection.generation or
-                type(data.get('version')) is not int or data['version'] != 1):
-            raise ApiError('Сервер не подтвердил начальную версию снимка.')
+                type(data.get('version')) is not int or data['version'] != version):
+            raise ApiError('Сервер не подтвердил отправленную версию снимка.')
+
+    def send_initial(self, connection, state):
+        self.send_snapshot(connection, state, 1)
