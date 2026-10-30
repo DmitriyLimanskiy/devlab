@@ -38,7 +38,11 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sen
 
     os.close(notify)
     # Потоки запускаются после fork: не наследуем блокировки фонового отправителя.
+    presence = None
     if sender is not None:
+        from .presence import PresenceReporter
+        presence = PresenceReporter(sender.client, sender.connection)
+        presence.start()
         sender.start()
     observer = Observer(folder, events, snapshot, os.path.join(os.path.dirname(rc_path), "command-status.json"),
                         on_state=sender.publish if sender is not None else None,
@@ -85,6 +89,8 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sen
             os.waitpid(pid, 0)
         observer.close()
         os.close(events)
+        if presence is not None:
+            presence.close()
         if sender is not None:
             sender.close()
             if message := sender.summary():

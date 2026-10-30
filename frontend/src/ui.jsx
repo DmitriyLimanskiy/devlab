@@ -6,6 +6,6 @@ export function Badge({ children }) {
   return <span className="badge">{children}</span>
 }
 
-export function Status({ children }) {
-  return <span className="status"><span className="status-dot" aria-hidden="true" />{children}</span>
+export function Status({ children, active = false }) {
+  return <span className={`status ${active ? 'status-active' : ''}`} role="status"><span className="status-dot" aria-hidden="true" />{children}</span>
 }

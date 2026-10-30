@@ -41,7 +41,7 @@ function useApi(path, parse = identity, method = 'GET') {
 
 function ApiState({ state, children }) {
   if (state.loading) return <p role="status">Загрузка…</p>
-  if (state.error) return <div role="alert"><p>Не удалось загрузить данные.</p><button className="text-button" onClick={state.retry}>Попробовать снова</button></div>
+  if (state.error) return <div role="alert"><p>Не удалось загрузить данные</p><button className="text-button" onClick={state.retry}>Попробовать снова</button></div>
   return children(state.data)
 }
 
@@ -53,16 +53,16 @@ function GitPage() {
 function Catalog() {
   const state = useApi(api.catalog, parseCatalog)
   return <section className="catalog" aria-labelledby="catalog-title">
-    <header className="catalog-heading"><div><h1 id="catalog-title">Курсы</h1><p>Технологии и инструменты для практики.</p></div>
+    <header className="catalog-heading"><div><h1 id="catalog-title">Курсы</h1><p>Технологии и инструменты для практики</p></div>
       {!state.loading && !state.error && <span className="catalog-count">Всего: {state.data.length}</span>}
     </header>
     <ApiState state={state}>{catalog => catalog.length ? <ul className="course-list">
       {catalog.map(course => <li className="course" key={course.id}>
         <div className="course-card-heading"><BookOpen className="course-icon" size={20} /><Badge>{courseStatusLabels[course.status]}</Badge></div>
-        <div className="course-card-content"><h2>{course.title}</h2><p>{course.description}</p></div>
+        <div className="course-card-content"><h2>{course.title}</h2><p>{course.description.replace(/\.+\s*$/, '')}</p></div>
         {course.id === 'git' && <a className="course-open" href={pages.git} aria-label={`Открыть курс ${course.title}`}>Открыть курс<ArrowRight size={16} /></a>}
       </li>)}
-    </ul> : <p>Курсы пока не добавлены.</p>}</ApiState>
+    </ul> : <p>Курсы пока не добавлены</p>}</ApiState>
   </section>
 }
 

@@ -13,6 +13,7 @@ from .connection import choose_connection
 
 
 def main() -> int:
+    launch_folder = Path.cwd()
     if sys.argv[1:]:
         print(
             "Запуск: devlab. Выход из оболочки: exit или Ctrl+D.",
@@ -55,8 +56,8 @@ def main() -> int:
 
     while True:
         try:
-            choice = input(f"  Папка проекта [{Path.cwd()}]: ").strip()
-            folder = Path(choice).expanduser().resolve() if choice else Path.cwd()
+            choice = input(f"  Папка проекта [Enter — {launch_folder}]: ").strip()
+            folder = Path(choice).expanduser().resolve() if choice else launch_folder
             if not folder.is_dir() or not os.access(folder, os.R_OK | os.X_OK):
                 print("  Выберите существующую доступную папку.")
                 continue

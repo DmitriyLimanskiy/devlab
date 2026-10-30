@@ -109,3 +109,11 @@ class ApiClient:
 
     def send_initial(self, connection, state):
         self.send_snapshot(connection, state, 1)
+
+    def presence(self, connection, disconnect=False):
+        data = self.request('/cli-disconnect' if disconnect else '/cli-heartbeat',
+                            {'session_id': connection.session_id, 'generation': connection.generation}, connection.key)
+        if (not isinstance(data, dict) or data.get('session_id') != connection.session_id or
+                type(data.get('generation')) is not int or data['generation'] != connection.generation or
+                data.get('connected') is not (not disconnect)):
+            raise ApiError('Сервер не подтвердил присутствие CLI')

@@ -3,3 +3,4 @@ uvicorn==0.34.2
 SQLAlchemy[asyncio]==2.0.55
 alembic==1.20.1
 psycopg[binary]==3.3.6
+websockets==15.0.1

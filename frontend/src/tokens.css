@@ -27,3 +27,17 @@
   --border-accent: #164c60;
   --accent-glow: #08bde90a;
 }
+
+:root {
+  --change-highlight: color-mix(in srgb, var(--accent) 16%, transparent);
+  --motion-graph: 320ms;
+  --motion-marker: 240ms;
+  --motion-change: 650ms;
+}
+
+:root {
+  --branch-violet: #b49aff;
+  --branch-orange: #ffaf64;
+  --branch-green: #53d6a0;
+  --branch-pink: #ed8ecb;
+}

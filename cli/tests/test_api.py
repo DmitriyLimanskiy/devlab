@@ -52,6 +52,9 @@ class ApiTest(unittest.TestCase):
                         'session_id': 'c7e1af73-5110-4c3d-9190-f8a3ef34d4ef',
                         'generation': 2, 'key': 'test-secret-key',
                     })
+                elif self.path in {'/api/v1/cli-heartbeat', '/api/v1/cli-disconnect'}:
+                    self.respond(200, {'session_id': body['session_id'], 'generation': body['generation'],
+                                       'connected': self.path.endswith('heartbeat')})
                 else:
                     self.respond(200, {'session_id': body['session_id'],
                                       'generation': body['generation'],
@@ -134,7 +137,9 @@ class ApiTest(unittest.TestCase):
                 os.write(master, b'exit\n')
                 until('Сессия DevLab завершена.'.encode())
                 self.assertEqual(process.wait(timeout=5), 0)
-                self.assertEqual(self.records[-1][1], '/api/v1/cli-send-snapshot')
+                self.assertTrue(any(r[1] == '/api/v1/cli-send-snapshot' for r in self.records))
+                self.assertTrue(any(r[1] == '/api/v1/cli-heartbeat' for r in self.records))
+                self.assertTrue(any(r[1] == '/api/v1/cli-disconnect' for r in self.records))
                 self.assertNotIn(b'test-secret-key', output)
                 for path in Path(directory).iterdir():
                     if path.is_file():
