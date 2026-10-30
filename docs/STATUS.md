@@ -8,3 +8,5 @@
 - Compose: nginx раздаёт сборку frontend, backend запускается с bind mount и reload, PostgreSQL подготовлен отдельным сервисом. Публичный локальный адрес — HTTP на loopback:8080; TLS и WebSocket пока не настроены.
 
 Обновлять документ при изменении готовности компонентов; команды запуска описаны в README соответствующих частей проекта.
+
+- Подготовлены контракт SnapshotReq/GitState, жизненный цикл в docs/practice-sessions.md и ORM-модели practice_sessions/practice_snapshots. Для новых таблиц миграция пока не создана; хранится один последний снимок, без истории.
