@@ -1,13 +1,10 @@
-"""Модели HTTP-ответа с шагами курса Git."""
-
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class CourseStepRes(BaseModel):
-    """Шаг курса; поддерживает преобразование из SQLAlchemy-объекта"""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -19,4 +16,6 @@ class CourseStepRes(BaseModel):
 
 
 class GitCourseRes(BaseModel):
+    session_id: UUID
+    generation: int
     steps: list[CourseStepRes]

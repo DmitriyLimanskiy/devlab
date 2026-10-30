@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
-from app.database import database_url
+from app.db.config import database_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,

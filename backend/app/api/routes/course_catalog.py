@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from app.db.session import get_session
-from app.models.courses.catalog import CatalogRes
-from app.schemas import Course
+from app.api.schemas.course_catalog import CatalogRes
+from app.db.models import Course
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

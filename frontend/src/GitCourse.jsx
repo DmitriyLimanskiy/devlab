@@ -18,7 +18,7 @@ function StepContent({ content }) {
   })}</div>
 }
 
-export function GitCourse({ steps }) {
+export function GitCourse({ steps, sessionId, generation }) {
   return <section className="git-course" aria-labelledby="git-title">
     <a className="back-link" href={pages.catalog}><ArrowLeft size={15} />Каталог курсов</a>
     <header className="course-heading">
@@ -36,6 +36,10 @@ export function GitCourse({ steps }) {
           </li>)}
         </ol> : <p className="steps-empty">Шаги курса пока не добавлены.</p>}
         <div className="practice-note"><code>state.json</code><p>Локальный снимок · передача на сервер пока недоступна.</p></div>
+        <div className="practice-session" aria-label="Сессия практики">
+          <span>Сессия практики</span><code>{sessionId}</code>
+          <p>{generation === 0 ? 'CLI ещё не подключался.' : `Поколение подключения: ${generation}`}</p>
+        </div>
         <p className="practice-footer">Выход из CLI: <code>exit</code> или <code>Ctrl+D</code>.</p>
       </aside>
       <div className="repository-workspace">

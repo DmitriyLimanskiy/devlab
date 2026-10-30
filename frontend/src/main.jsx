@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { FlaskConical, PanelLeftClose, PanelLeftOpen, House, BookOpen, ArrowRight } from 'lucide-react'
 import { GitCourse } from './GitCourse'
-import { parseCourseSteps } from './courseSteps'
+import { parseGitCourse } from './courseSteps'
 import { IconButton, Badge } from './ui'
 import { pages, api } from './routes'
 import { parseCatalog, courseStatusLabels } from './catalog'
@@ -16,13 +16,13 @@ const navigation = [
 
 const identity = data => data
 
-function useApi(path, parse = identity) {
+function useApi(path, parse = identity, method = 'GET') {
   const [state, setState] = useState({ loading: true, data: null, error: false })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
     setState({ loading: true, data: null, error: false })
-    fetch(path, { signal: controller.signal })
+    fetch(path, { method, signal: controller.signal })
       .then(response => {
         if (!response.ok) throw new Error('Request failed')
         return response.json()
@@ -35,7 +35,7 @@ function useApi(path, parse = identity) {
         if (error.name !== 'AbortError') setState({ loading: false, data: null, error: true })
       })
     return () => controller.abort()
-  }, [path, attempt, parse])
+  }, [path, attempt, parse, method])
   return { ...state, retry: () => setAttempt(value => value + 1) }
 }
 
@@ -46,8 +46,8 @@ function ApiState({ state, children }) {
 }
 
 function GitPage() {
-  const state = useApi(api.git, parseCourseSteps)
-  return <ApiState state={state}>{steps => <GitCourse steps={steps} />}</ApiState>
+  const state = useApi(api.git, parseGitCourse, 'POST')
+  return <ApiState state={state}>{course => <GitCourse steps={course.steps} sessionId={course.session_id} generation={course.generation} />}</ApiState>
 }
 
 function Catalog() {

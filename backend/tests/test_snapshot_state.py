@@ -8,7 +8,7 @@ import unittest
 from uuid import uuid4
 
 from pydantic import ValidationError
-from app.models.snapshots.snapshot import SnapshotReq
+from app.api.schemas.snapshot import SnapshotReq
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'cli' / 'src'))
 from devlab.git_state import read_state

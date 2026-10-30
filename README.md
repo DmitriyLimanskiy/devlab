@@ -64,4 +64,6 @@ Vite проксирует `/api/` на localhost:8000. Production-сборка: 
 
 Для Vite dev и preview отдельно запустите backend на порту 8000. Порт 8000 обслуживает JSON API, а не HTML-страницы. Прокси nginx и Vite сохраняют `/api/v1/` в запросах. Адреса frontend собраны в `frontend/src/routes.js`; backend использует APIRouter с префиксом `/api/v1`.
 
-Страница Git: `/git-course`, переход «Открыть» в каталоге. Данные страницы запрашиваются через `GET /api/v1/git-course`; ручка возвращает шаги Git из PostgreSQL в поле steps. Frontend отображает шаги из API: текстовые блоки и команды. Синхронизация CLI и граф репозитория ещё не подключены.
+Страница Git: `/git-course`, переход «Открыть» в каталоге. Данные страницы запрашиваются через `POST /api/v1/git-course`; ручка создаёт/возвращает активную сессию и возвращает session_id, generation и шаги Git из PostgreSQL в поле steps. Frontend отображает шаги из API: текстовые блоки и команды. Синхронизация CLI и граф репозитория ещё не подключены.
+
+Структура backend: HTTP-маршруты — `backend/app/api/routes`, Pydantic-контракты — `backend/app/api/schemas`, SQLAlchemy-таблицы — `backend/app/db/models`. Подробная карта файлов и API — в [backend/README.md](backend/README.md).

@@ -2,9 +2,43 @@
 
 FastAPI-приложение и миграции PostgreSQL. Запуск API не создаёт таблицы и не применяет миграции автоматически.
 
+## Структура приложения
+
+```text
+app/
+├── main.py                     # создание FastAPI и подключение роутеров
+├── api/
+│   ├── routes/
+│   │   ├── course_catalog.py   # каталог курсов
+│   │   └── git_course.py       # открытие Git-песочницы
+│   └── schemas/
+│       ├── course_catalog.py   # ответ каталога
+│       ├── git_course.py       # сессия и шаги курса
+│       ├── snapshot.py         # конверт запроса со снимком
+│       └── git_state.py        # содержимое состояния Git
+└── db/
+    ├── base.py                 # DeclarativeBase и соглашения имён
+    ├── config.py               # URL подключения из окружения
+    ├── session.py              # AsyncEngine и AsyncSession
+    └── models/
+        ├── course.py          # courses, course_steps
+        └── practice.py        # practice_sessions, practice_snapshots
+```
+
+`api/schemas` описывает HTTP-данные, `db/models` — хранение. Alembic импортирует общую Base и регистрирует модели из db/models. Перенос Python-модулей не меняет таблицы и не требует отдельной миграции.
+
+## Контракт страниц и API
+
+| Страница | Метод и API | Ответ |
+| --- | --- | --- |
+| `/catalog` | `GET /api/v1/catalog` | Список курсов: id=slug, title, description, status, position |
+| `/git-course` | `POST /api/v1/git-course`, без тела | session_id, generation, steps |
+
+POST Git находит курс по slug=git, атомарно создаёт или возвращает активную сессию, затем читает её шаги по course_id. Повторное/параллельное открытие не меняет поколение, ключ и даты существующей сессии. Неизвестный курс возвращает 404. Создание подключения CLI и выдача ключа здесь не выполняются.
+
 ## Таблицы
 
-SQLAlchemy-модели находятся в `app/schemas/`, отдельно от Pydantic-моделей HTTP в `app/models/`.
+SQLAlchemy-модели находятся в `app/db/models/`, отдельно от Pydantic-моделей HTTP в `app/api/schemas/`.
 
 - `courses`: `id` (identity), уникальный `slug`, `title`, `description`, `status`, `position`, `created_at`, `updated_at`.
 - `course_steps`: `id` (identity), `course_id`, `slug`, `position`, `title`, `content` (JSONB), `created_at`, `updated_at`.
@@ -59,7 +93,7 @@ python3 -m venv .venv
 .venv/bin/alembic upgrade head --sql
 ```
 
-Для online-команд нужен доступ к PostgreSQL и переменная `DATABASE_URL` вида `postgresql+psycopg://USER:PASSWORD@HOST:5432/DB` либо `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`. В URL специальные символы пароля нужно кодировать; набор `POSTGRES_*` этого не требует. `.env` автоматически не читается локальным Alembic. Compose не публикует порт PostgreSQL на хост, поэтому для текущего окружения удобнее запуск через Docker.
+Для online-команд нужен доступ к PostgreSQL и переменная `DATABASE_URL` вида `postgresql+psycopg://USER:PASSWORD@HOST:5432/DB` либо `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`. В URL специальные символы пароля нужно кодировать; набор `POSTGRES_*` этого не требует. `.env` автоматически не читается локальным Alembic. Compose публикует PostgreSQL на `127.0.0.1:5432`. При локальном запуске задавать POSTGRES_HOST=127.0.0.1; внутри Docker используется postgres.
 
 Будущие изменения моделей оформлять новой ревизией:
 
@@ -77,7 +111,7 @@ Autogenerate требует доступа к БД; перед применен�
 
 ## Модель входящего снимка
 
-`app/models/snapshots/snapshot.py` описывает `SnapshotReq`, `state.py` — вложенные модели состояния. Это подготовка контракта, а не готовая ручка приёма снимков.
+`app/api/schemas/snapshot.py` описывает `SnapshotReq`, `git_state.py` — вложенные модели состояния. Это подготовка контракта, а не готовая ручка приёма снимков.
 
 В `state` передаётся именно поле `state` локального файла CLI, без обёртки `generator/version/updated_at`. Версия доставки, поколение и сессия находятся на верхнем уровне запроса.
 
@@ -103,7 +137,7 @@ PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -s backend/test
 
 ## Модели сессий песочницы
 
-`app/schemas/snapshot.py` содержит `PracticeSession` и `PracticeSnapshot`; обе модели зарегистрированы в общей metadata для Alembic. Миграцию для этих таблиц нужно создать и применить отдельно: начальная миграция курсов не меняется.
+`app/db/models/practice.py` содержит `PracticeSession` и `PracticeSnapshot`; обе модели зарегистрированы в общей metadata для Alembic. Для этих таблиц добавлена отдельная миграция `8ca2ebb96c2b`; применение выполняется вручную. Начальная миграция курсов не меняется.
 
 - `practice_sessions`: UUID (`uuid4` задаётся Python), курс, статус active/closed, поколение (0 до первого CLI), хеш ключа, время создания/последнего подключения/закрытия. Частичный уникальный индекс разрешает одну active-сессию на курс. `closed_at` обязателен только при closed.
 - `practice_snapshots`: session_id как PK/FK, положительные schema_version/generation/version, JSONB-объект state и received_at. PK ограничивает хранение одним последним снимком. При замене снимка received_at нужно обновлять явно.
@@ -111,3 +145,19 @@ PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -s backend/test
 Все новые внешние ключи используют RESTRICT: закрытие не означает удаление. Временная разница поколений сессии и последнего снимка допустима. Проверка ключа, принятие только новых версий и атомарная выдача поколения реализуются будущими обработчиками; модели сами этого не обеспечивают.
 
 Жизненный цикл описан в [practice-sessions.md](../docs/practice-sessions.md). Alembic autogenerate требует подключение к текущей БД; выполнять его из окружения с доступом к БД и правом записи в `alembic/versions` (Compose монтирует каталог миграций только для чтения).
+
+## Проверки
+
+Из корня проекта:
+
+```sh
+PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -s backend/tests -v
+```
+
+Проверки снимков используют временные Git-репозитории. Проверки ручки Git требуют PostgreSQL и включаются явно; они создают и удаляют отдельные временные схемы, не меняя прикладные таблицы:
+
+```sh
+docker compose exec -T -e RUN_DB_TESTS=1 backend python - < backend/tests/test_git_course.py
+```
+
+Проверяются параллельное открытие одной сессии, сохранение поколения, сортировка/принадлежность шагов, создание после закрытой сессии и отсутствие курса. Для локального запуска можно указать `TEST_DATABASE_URL`; по умолчанию берутся обычные переменные подключения. Без RUN_DB_TESTS проверки PostgreSQL пропускаются.

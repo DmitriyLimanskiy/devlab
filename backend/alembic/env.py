@@ -4,8 +4,9 @@ import asyncio
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.database import database_url
-from app.schemas import Base
+from app.db.config import database_url
+from app.db.base import Base
+from app.db import models  # Регистрация всех таблиц в metadata для autogenerate.
 
 
 def offline():

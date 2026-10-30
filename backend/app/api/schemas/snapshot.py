@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .state import GitState
+from .git_state import GitState
 
 
 class SnapshotReq(BaseModel):

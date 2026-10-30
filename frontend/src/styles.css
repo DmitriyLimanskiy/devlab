@@ -119,3 +119,7 @@ code { font-family: var(--font-mono); }
 .step-blocks pre { margin: 0; max-width: 100%; overflow-x: auto; }
 .practice-steps .step-blocks code { display: block; width: max-content; min-width: 100%; }
 .steps-empty { margin: 24px 0; }
+
+.practice-session { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
+.practice-session > span { color: var(--text-muted); font-size: 11px; }
+.practice-session > code { display: block; margin: 8px 0; color: var(--text-secondary); font-size: 11px; overflow-wrap: anywhere; }

@@ -13,3 +13,13 @@ export function parseCourseSteps(data) {
   }
   return [...steps].sort((a, b) => a.position - b.position || a.id - b.id)
 }
+
+// POST /git-course возвращает сессию и шаги одним ответом.
+export function parseGitCourse(data) {
+  if (!data || typeof data.session_id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.session_id) ||
+      !Number.isSafeInteger(data.generation) || data.generation < 0) {
+    throw new Error('Некорректный ответ сессии курса')
+  }
+  return { session_id: data.session_id, generation: data.generation, steps: parseCourseSteps(data) }
+}
