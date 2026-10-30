@@ -1,6 +1,8 @@
 """Миграции запускаются только явной командой Alembic."""
 from alembic import context
-from sqlalchemy import create_engine, pool
+import asyncio
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.database import database_url
 from app.schemas import Base
@@ -14,18 +16,22 @@ def offline():
         context.run_migrations()
 
 
-def online():
-    engine = create_engine(database_url(), poolclass=pool.NullPool)
+def run_migrations(connection):
+    context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True)
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def online():
+    engine = create_async_engine(database_url(), poolclass=pool.NullPool)
     try:
-        with engine.connect() as connection:
-            context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True)
-            with context.begin_transaction():
-                context.run_migrations()
+        async with engine.connect() as connection:
+            await connection.run_sync(run_migrations)
     finally:
-        engine.dispose()
+        await engine.dispose()
 
 
 if context.is_offline_mode():
     offline()
 else:
-    online()
+    asyncio.run(online())

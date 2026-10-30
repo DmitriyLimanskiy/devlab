@@ -4,6 +4,7 @@ import { FlaskConical, PanelLeftClose, PanelLeftOpen, House, BookOpen, ArrowRigh
 import { GitCourse } from './GitCourse'
 import { IconButton, Badge } from './ui'
 import { pages, api } from './routes'
+import { parseCatalog, courseStatusLabels } from './catalog'
 import './tokens.css'
 import './styles.css'
 
@@ -12,7 +13,9 @@ const navigation = [
   { path: pages.git, label: 'Git', icon: FlaskConical },
 ]
 
-function useApi(path) {
+const identity = data => data
+
+function useApi(path, parse = identity) {
   const [state, setState] = useState({ loading: true, data: null, error: false })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
@@ -23,12 +26,15 @@ function useApi(path) {
         if (!response.ok) throw new Error('Request failed')
         return response.json()
       })
-      .then(data => setState({ loading: false, data, error: false }))
+      .then(parse)
+      .then(data => {
+        if (!controller.signal.aborted) setState({ loading: false, data, error: false })
+      })
       .catch(error => {
         if (error.name !== 'AbortError') setState({ loading: false, data: null, error: true })
       })
     return () => controller.abort()
-  }, [path, attempt])
+  }, [path, attempt, parse])
   return { ...state, retry: () => setAttempt(value => value + 1) }
 }
 
@@ -44,15 +50,16 @@ function GitPage() {
 }
 
 function Catalog() {
-  const state = useApi(api.catalog)
+  const state = useApi(api.catalog, parseCatalog)
   return <section className="catalog" aria-labelledby="catalog-title">
-    <h1 id="catalog-title">Курсы</h1>
+    <header className="catalog-heading"><div><h1 id="catalog-title">Курсы</h1><p>Технологии и инструменты для практики.</p></div>
+      {!state.loading && !state.error && <span className="catalog-count">Всего: {state.data.length}</span>}
+    </header>
     <ApiState state={state}>{catalog => catalog.length ? <ul className="course-list">
       {catalog.map(course => <li className="course" key={course.id}>
-        <BookOpen className="course-icon" size={22} />
-        <div><h2>{course.title}</h2><p>{course.description}</p></div>
-        {course.id === 'git' && <a className="course-open" href={pages.git}>Открыть<ArrowRight size={16} /></a>}
-        <Badge>{course.status === 'planned' ? 'В разработке' : course.status}</Badge>
+        <div className="course-card-heading"><BookOpen className="course-icon" size={20} /><Badge>{courseStatusLabels[course.status]}</Badge></div>
+        <div className="course-card-content"><h2>{course.title}</h2><p>{course.description}</p></div>
+        {course.id === 'git' && <a className="course-open" href={pages.git} aria-label={`Открыть курс ${course.title}`}>Открыть курс<ArrowRight size={16} /></a>}
       </li>)}
     </ul> : <p>Курсы пока не добавлены.</p>}</ApiState>
   </section>

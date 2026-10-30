@@ -6,3 +6,4 @@ class ResCatalog(BaseModel):
     title: str
     description: str
     status: str = "planned"
+    position: int

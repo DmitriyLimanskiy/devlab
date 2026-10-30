@@ -27,11 +27,16 @@ p { color: var(--text-secondary); line-height: 1.8; margin: 0; font-size: 14px; 
 .primary-link { display: inline-flex; align-items: center; justify-content: center; gap: 12px; margin-top: 28px; padding: 11px 16px; border: 1px solid #08bde945; border-radius: var(--radius-sm); color: var(--accent); background: var(--bg-selected); }
 .primary-link:hover { border-color: var(--accent); }
 .text-button { color: var(--accent); background: none; border: 0; padding: 12px 0; cursor: pointer; }
-.canvas-catalog { display: block; }
-.catalog { max-width: 920px; margin: 0 auto; }
-.catalog h1 { margin: 0 0 28px; }
-.course-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-.course { display: flex; align-items: center; gap: 18px; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-panel); }
+.canvas-catalog { display: block; padding: 22px; }
+.catalog { width: 100%; }
+.catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border-soft); }
+.catalog h1 { margin: 0 0 6px; font-size: 28px; }
+.catalog-heading p { font-size: 13px; }
+.catalog-count { color: var(--text-muted); font: 12px var(--font-mono); white-space: nowrap; }
+.course-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; gap: 16px; }
+.course { display: flex; flex-direction: column; align-items: stretch; width: 100%; max-width: 380px; min-width: 0; gap: 18px; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-panel); }
+.course-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.course-card-content { overflow-wrap: anywhere; }
 .course-icon { flex-shrink: 0; color: var(--accent); }
 .course h2 { margin: 0 0 6px; font-size: 17px; font-weight: 500; }
 .course p { font-size: 13px; }
@@ -44,9 +49,8 @@ p { color: var(--text-secondary); line-height: 1.8; margin: 0; font-size: 14px; 
   .workbench { grid-template-columns: 200px minmax(0, 1fr); }
   .sidebar-collapsed { grid-template-columns: 52px minmax(0, 1fr); }
   .canvas { padding: 28px 18px; }
-  .course { flex-wrap: wrap; gap: 12px; padding: 18px; }
-  .course > div { flex: 1; min-width: 120px; }
-  .course .badge { margin-left: 34px; }
+  .canvas-catalog { padding: 18px; }
+  .catalog-heading { align-items: flex-start; flex-wrap: wrap; }
 }
 @media (max-width: 480px) {
   .workbench { grid-template-columns: 52px minmax(0, 1fr); }
@@ -55,9 +59,8 @@ p { color: var(--text-secondary); line-height: 1.8; margin: 0; font-size: 14px; 
 }
 
 /* Рабочее пространство Git: терминальные панели из визуального референса. */
-.course-open { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); margin-left: auto; white-space: nowrap; }
+.course-open { display: inline-flex; align-items: center; align-self: flex-start; gap: 8px; color: var(--accent); padding: 8px 0; border-top: 1px solid var(--border-soft); font-size: 13px; white-space: nowrap; }
 .course-open:hover, .back-link:hover { color: var(--text-primary); }
-.course-open + .badge { margin-left: 0; }
 .canvas-git { display: block; padding: 22px; min-height: 0; }
 .git-course { width: 100%; height: 100%; min-height: 700px; display: flex; flex-direction: column; }
 .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 13px; }
