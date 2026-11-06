@@ -1,5 +1,3 @@
-"""Настоящие HTTP/WS и PostgreSQL; отдельная схема, без изменения данных проекта"""
-
 import asyncio
 import json
 import socket
@@ -12,7 +10,10 @@ from unittest.mock import patch
 
 import test_git_course
 import uvicorn
-from app.api.routes.practice import get_practice_state, get_snapshot_history
+from app.api.routes.practice.git_practice import (
+    get_practice_state,
+    get_snapshot_history,
+)
 from app.db.session import get_session
 from app.main import app
 from fastapi import Response
@@ -34,7 +35,8 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         port = listener.getsockname()[1]
         server = uvicorn.Server(uvicorn.Config(app, log_level="error", lifespan="off"))
         with patch(
-            "app.api.routes.practice.get_session_factory", return_value=self.factory
+            "app.api.routes.practice.git_practice.get_session_factory",
+            return_value=self.factory,
         ):
             task = asyncio.create_task(server.serve(sockets=[listener]))
             try:
@@ -109,7 +111,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 sys.path.insert(
                     0, str(Path(__file__).resolve().parents[2] / "cli" / "src")
                 )
-                from devlab.git_state import read_state
+                from devlab.practice.git_state import read_state
 
                 with tempfile.TemporaryDirectory() as directory:
                     repo = Path(directory)
@@ -137,7 +139,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     self.assertEqual(json.loads(await ws.recv())["type"], "ready")
                     saved = (await request(path))["snapshot"]
                     self.assertEqual(saved["version"], 2)
-                    from app.api.schemas.snapshot import SnapshotReq
+                    from app.api.schemas.cli.snapshot import SnapshotReq
 
                     self.assertEqual(
                         saved["state"],
@@ -158,9 +160,9 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 app.dependency_overrides.clear()
 
     async def test_history_order_pagination_and_conflicting_retries(self):
-        from app.api.routes.cli import cli_connect, cli_send_state
-        from app.api.schemas.cli import CliConnectReq
-        from app.api.schemas.snapshot import SnapshotReq
+        from app.api.routes.cli.cli import cli_connect, cli_send_state
+        from app.api.schemas.cli.cli import CliConnectReq
+        from app.api.schemas.cli.snapshot import SnapshotReq
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
 
@@ -220,10 +222,10 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
             self.assertFalse(page.has_more)
 
     async def test_failed_commit_does_not_publish(self):
-        from app.api.routes.cli import cli_connect, cli_send_state
-        from app.api.schemas.cli import CliConnectReq
-        from app.api.schemas.snapshot import SnapshotReq
-        from app.services.practice_events import events
+        from app.api.routes.cli.cli import cli_connect, cli_send_state
+        from app.api.schemas.cli.cli import CliConnectReq
+        from app.api.schemas.cli.snapshot import SnapshotReq
+        from app.services.practice.practice_events import events
         from fastapi.security import HTTPAuthorizationCredentials
 
         await self.prepare_courses()
@@ -259,9 +261,9 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
             self.assertIsNone(result.snapshot)
 
     async def test_presence_auth_and_no_snapshot_versions(self):
-        from app.api.routes.cli import cli_connect, cli_disconnect, cli_heartbeat
-        from app.api.schemas.cli import CliConnectReq, CliPresenceReq
-        from app.services.cli_presence import presence
+        from app.api.routes.cli.cli import cli_connect, cli_disconnect, cli_heartbeat
+        from app.api.schemas.cli.cli import CliConnectReq, CliPresenceReq
+        from app.services.cli.cli_presence import presence
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
 

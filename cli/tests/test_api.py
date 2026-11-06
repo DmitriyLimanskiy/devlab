@@ -1,5 +1,3 @@
-"""HTTP-проверки CLI на локальном сервере, без записи ключей в проект"""
-
 import contextlib
 import io
 import json
@@ -17,8 +15,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.api import ApiClient, ApiError
-from devlab.connection import choose_connection
+from devlab.cli.api import ApiClient, ApiError
+from devlab.cli.connection import choose_connection
 
 
 class ApiTest(unittest.TestCase):

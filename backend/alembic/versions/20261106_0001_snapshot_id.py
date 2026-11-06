@@ -1,11 +1,5 @@
-"""Добавить серверный id снимка и перенести первичный ключ
-
-Revision ID: 20261106_0001
-Revises: b05920781370
-"""
-
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "20261106_0001"
 down_revision = "b05920781370"

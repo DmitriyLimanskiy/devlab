@@ -1,5 +1,3 @@
-"""Независимая доставка последнего состояния файлов"""
-
 import sys
 import json
 import tempfile
@@ -9,8 +7,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.api import Connection
-from devlab.worktree import WorktreeSender
+from devlab.cli.api import Connection
+from devlab.practice.worktree import WorktreeSender
 
 
 class Client:

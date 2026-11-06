@@ -1,11 +1,9 @@
-"""Проверки ручки Git в изолированных временных схемах PostgreSQL"""
-
 import asyncio
 import os
 import unittest
 from uuid import uuid4
 
-from app.api.routes.git_course import git_course
+from app.api.routes.courses.git_course import git_course
 from app.db.base import Base
 from app.db.config import database_url
 from app.db.models import Course, CourseStep, PracticeSession

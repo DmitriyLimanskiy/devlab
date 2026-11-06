@@ -1,5 +1,3 @@
-"""Проверки настоящей сессии bash во вложенном PTY (macOS)"""
-
 import fcntl
 import os
 import pty
@@ -24,15 +22,25 @@ class TerminalTest(unittest.TestCase):
         self.addCleanup(self.project.cleanup)
         self.master, self.slave = pty.openpty()
         self.original = termios.tcgetattr(self.slave)
-        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"), NO_COLOR="1", DEVLAB_OFFLINE="1")
+        env = dict(
+            os.environ,
+            PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
+            NO_COLOR="1",
+            DEVLAB_OFFLINE="1",
+        )
         self.process = subprocess.Popen(
-            [sys.executable, "-m", "devlab"], stdin=self.slave,
-            stdout=self.slave, stderr=self.slave, env=env,
+            [sys.executable, "-m", "devlab"],
+            stdin=self.slave,
+            stdout=self.slave,
+            stderr=self.slave,
+            env=env,
         )
         self.read_until("Папка проекта".encode())
         os.write(self.master, self.project.name.encode() + b"\n")
         startup = self.read_until(b" > ")
-        self.snapshot = Path(re.search(rb"(/[^\r\n]+/state.json)", startup).group(1).decode())
+        self.snapshot = Path(
+            re.search(rb"(/[^\r\n]+/state.json)", startup).group(1).decode()
+        )
 
     def tearDown(self):
         if self.process.poll() is None:

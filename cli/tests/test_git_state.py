@@ -1,5 +1,3 @@
-"""Реальные репозитории и внешние изменения, без подмены Git моками"""
-
 import json
 import os
 from pathlib import Path
@@ -10,8 +8,8 @@ import time
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.git_state import stable_state
-from devlab.observer import Observer
+from devlab.practice.git_state import stable_state
+from devlab.practice.observer import Observer
 
 
 class GitStateTest(unittest.TestCase):
@@ -178,8 +176,8 @@ class GitStateTest(unittest.TestCase):
             os.close(write)
 
     def test_commands_without_git_changes_do_not_enqueue_snapshots(self):
-        from devlab.api import ApiClient, Connection
-        from devlab.sync import SnapshotSender
+        from devlab.cli.api import ApiClient, Connection
+        from devlab.practice.sync import SnapshotSender
 
         self.initialize()
         self.commit("base")

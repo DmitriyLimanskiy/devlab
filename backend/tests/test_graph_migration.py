@@ -1,5 +1,3 @@
-"""Перенос старых снимков без потери текущего состояния и графа"""
-
 import os
 import unittest
 from pathlib import Path

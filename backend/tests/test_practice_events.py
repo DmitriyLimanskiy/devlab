@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from uuid import uuid4
 
-from app.services.practice_events import PracticeEvents
+from app.services.practice.practice_events import PracticeEvents
 
 
 class EventsTest(unittest.IsolatedAsyncioTestCase):
@@ -27,7 +27,7 @@ class EventsTest(unittest.IsolatedAsyncioTestCase):
 
 class PresenceTest(unittest.TestCase):
     def test_timeout_generation_and_disconnect(self):
-        from app.services.cli_presence import CliPresence
+        from app.services.cli.cli_presence import CliPresence
 
         now = [100.0]
         presence = CliPresence(clock=lambda: now[0])

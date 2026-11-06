@@ -1,15 +1,9 @@
-"""Текущее состояние отдельно от коммитов и истории refs
-
-Revision ID: 20261106_0003
-Revises: 20261106_0002
-"""
-
 import hashlib
 import json
 from uuid import uuid4
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 revision = "20261106_0003"

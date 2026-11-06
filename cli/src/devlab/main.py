@@ -1,5 +1,3 @@
-"""Точка входа и оформление терминальной сессии"""
-
 import json
 import os
 import shutil
@@ -7,9 +5,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .api import ApiClient, ApiError
-from .connection import choose_connection
-from .project import ensure_state_ignored
+from devlab.cli.api import ApiClient, ApiError
+from devlab.cli.connection import choose_connection
+from devlab.practice.project import ensure_state_ignored
 
 
 def main() -> int:
@@ -31,7 +29,7 @@ def main() -> int:
         print("Не найден bash в PATH", file=sys.stderr)
         return 1
 
-    from .terminal import run_bash
+    from devlab.shell.terminal import run_bash
 
     color = "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
     accent, reset = ("\033[36m", "\033[0m") if color else ("", "")
@@ -120,7 +118,7 @@ def main() -> int:
         )
         sender = None
         if connection is not None:
-            from .sync import SnapshotSender
+            from devlab.practice.sync import SnapshotSender
 
             sender = SnapshotSender(client, connection, folder)
             print("  Синхронизация будет работать в фоне\n", flush=True)

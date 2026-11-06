@@ -1,5 +1,3 @@
-"""Сетевые модели проверяются на снимках настоящего Git из CLI"""
-
 import copy
 import subprocess
 import sys
@@ -8,11 +6,11 @@ import unittest
 from pathlib import Path
 from uuid import uuid4
 
-from app.api.schemas.snapshot import SnapshotReq
+from app.api.schemas.cli.snapshot import SnapshotReq
 from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-from devlab.git_state import read_state
+from devlab.practice.git_state import read_state
 
 
 class SnapshotStateTest(unittest.TestCase):

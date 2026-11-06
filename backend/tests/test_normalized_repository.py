@@ -1,16 +1,21 @@
-"""Нормализация на настоящем Git и изолированной схеме PostgreSQL"""
-
 import subprocess
 import tempfile
 from pathlib import Path
 
 import test_git_course
-from app.api.routes.cli import cli_connect, cli_send_state
-from app.api.routes.practice import get_practice_state, get_snapshot_history
-from app.api.schemas.cli import CliConnectReq
-from app.api.schemas.snapshot import SnapshotReq
-from app.db.models.practice import PracticeSnapshot
-from app.db.models.repository import GraphEvent, RepositoryCommit, SnapshotReceipt
+from app.api.routes.cli.cli import cli_connect, cli_send_state
+from app.api.routes.practice.git_practice import (
+    get_practice_state,
+    get_snapshot_history,
+)
+from app.api.schemas.cli.cli import CliConnectReq
+from app.api.schemas.cli.snapshot import SnapshotReq
+from app.db.models.practice.practice import PracticeSnapshot
+from app.db.models.practice.repository import (
+    GraphEvent,
+    RepositoryCommit,
+    SnapshotReceipt,
+)
 from fastapi import Response
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import select, func
@@ -21,7 +26,7 @@ class NormalizedRepositoryTest(test_git_course.GitCourseTest):
         import sys
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from devlab.git_state import read_state
+        from devlab.practice.git_state import read_state
 
         await self.prepare_courses()
         course = await self.request()

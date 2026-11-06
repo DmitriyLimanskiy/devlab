@@ -1,5 +1,3 @@
-"""Миграции запускаются только явной командой Alembic"""
-
 from alembic import context
 import asyncio
 from sqlalchemy import pool

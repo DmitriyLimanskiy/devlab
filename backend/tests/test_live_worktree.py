@@ -1,5 +1,3 @@
-"""HTTP и WebSocket оперативных файлов без доступа к базе"""
-
 import asyncio
 import hashlib
 import json
@@ -14,7 +12,7 @@ import uvicorn
 from websockets.asyncio.client import connect
 
 from app.main import app
-from app.services.live_worktree import live_worktree
+from app.services.cli.live_worktree import live_worktree
 
 
 class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
@@ -60,7 +58,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         path = f"/api/v1/practice-sessions/{sid}/worktree"
         try:
             with patch(
-                "app.api.routes.worktree.get_session_factory",
+                "app.api.routes.cli.worktree.get_session_factory",
                 side_effect=AssertionError("База не должна вызываться"),
             ):
                 self.assertIsNone((await request(path))["state"])
@@ -114,9 +112,9 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         from pathlib import Path
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from devlab.api import ApiClient, Connection
-        from devlab.observer import Observer
-        from devlab.worktree import WorktreeSender
+        from devlab.cli.api import ApiClient, Connection
+        from devlab.practice.observer import Observer
+        from devlab.practice.worktree import WorktreeSender
 
         sid, key = uuid4(), "periodic-test-key"
         live_worktree.bind(sid, 1, hashlib.sha256(key.encode()).hexdigest())
@@ -172,7 +170,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
                 sender.start()
                 try:
                     with patch(
-                        "app.api.routes.worktree.get_session_factory",
+                        "app.api.routes.cli.worktree.get_session_factory",
                         side_effect=AssertionError("БД не нужна"),
                     ):
                         await wait_files(lambda files: files == [])

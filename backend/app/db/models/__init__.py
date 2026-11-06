@@ -1,7 +1,10 @@
-"""Регистрация всех SQLAlchemy-таблиц в общей metadata приложения"""
-
-from .course import Course, CourseStep
-from .practice import PracticeSession, PracticeSnapshot
+from app.db.models.courses.course import Course, CourseStep
+from app.db.models.practice.practice import PracticeSession, PracticeSnapshot
+from app.db.models.practice.repository import (
+    GraphEvent,
+    RepositoryCommit,
+    SnapshotReceipt,
+)
 
 __all__ = [
     "Course",
@@ -12,5 +15,3 @@ __all__ = [
     "RepositoryCommit",
     "SnapshotReceipt",
 ]
-
-from .repository import GraphEvent, RepositoryCommit, SnapshotReceipt
