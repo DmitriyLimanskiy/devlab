@@ -45,10 +45,14 @@ def run_bash(
     os.close(notify)
     # Потоки запускаются после fork: не наследуем блокировки фонового отправителя
     presence = None
+    worktree = None
     if sender is not None:
         from .presence import PresenceReporter
+        from .worktree import WorktreeSender
 
         presence = PresenceReporter(sender.client, sender.connection)
+        worktree = WorktreeSender(sender.client, sender.connection, snapshot=snapshot)
+        worktree.start()
         presence.start()
         sender.start()
     observer = Observer(
@@ -57,6 +61,7 @@ def run_bash(
         snapshot,
         os.path.join(os.path.dirname(rc_path), "command-status.json"),
         on_state=sender.publish if sender is not None else None,
+        on_worktree=worktree.seed if worktree is not None else None,
         internal_dir=sender.pending_path.parent if sender is not None else None,
     )
     observer.preserve_existing = not write_snapshot
@@ -101,6 +106,8 @@ def run_bash(
             os.waitpid(pid, 0)
         observer.close()
         os.close(events)
+        if worktree is not None:
+            worktree.close()
         if presence is not None:
             presence.close()
         if sender is not None:

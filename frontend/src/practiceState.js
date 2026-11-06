@@ -1,6 +1,7 @@
 const integer = value => Number.isSafeInteger(value) && value >= 0
 const hash = value => typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value)
 export function parsePracticeState(data, sessionId) {
+  if (data?.graph_history_id !== undefined && !integer(data.graph_history_id)) throw new Error('Некорректная версия истории')
   if (!data || data.session_id !== sessionId || !integer(data.generation) ||
       !['active', 'closed'].includes(data.status) || typeof data.cli_connected !== 'boolean' ||
       !Number.isFinite(data.cli_lease_seconds) || data.cli_lease_seconds < 0 || data.cli_lease_seconds > 35 ||

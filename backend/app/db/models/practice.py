@@ -67,11 +67,9 @@ class PracticeSession(Base):
 
 
 class PracticeSnapshot(Base):
-    __tablename__ = "practice_snapshots"
+    __tablename__ = "practice_current_states"
     __table_args__ = (
-        UniqueConstraint(
-            "session_id", "generation", "version", name="uq_practice_snapshots_delivery"
-        ),
+        UniqueConstraint("session_id", name="uq_practice_current_session"),
         CheckConstraint("schema_version > 0", name="positive_schema_version"),
         CheckConstraint("generation > 0", name="positive_generation"),
         CheckConstraint("version > 0", name="positive_version"),
@@ -83,6 +81,7 @@ class PracticeSnapshot(Base):
         PGUUID(as_uuid=True),
         ForeignKey("practice_sessions.id", ondelete="RESTRICT"),
     )
+    repository_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True))
     schema_version: Mapped[int] = mapped_column(Integer)
     generation: Mapped[int] = mapped_column(BigInteger)
     version: Mapped[int] = mapped_column(BigInteger)

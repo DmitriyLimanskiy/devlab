@@ -141,7 +141,12 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
                     self.assertEqual(
                         saved["state"],
-                        SnapshotReq.model_validate(body).state.model_dump(mode="json"),
+                        {
+                            **SnapshotReq.model_validate(body).state.model_dump(
+                                mode="json"
+                            ),
+                            "files": [],
+                        },
                     )
                 # После ротации сохраняется старый снимок с явным поколением
                 await request("/api/v1/cli-connect", {"course_slug": "git"})
@@ -179,10 +184,12 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         ids = []
         for version in (1, 2, 3):
             async with self.factory() as db:
-                ack = await cli_send_state(body(version), db, credentials)
+                ack = await cli_send_state(
+                    body(version, f"/repo-{version}"), db, credentials
+                )
                 ids.append(ack.id)
         async with self.factory() as db:
-            duplicate = await cli_send_state(body(1), db, credentials)
+            duplicate = await cli_send_state(body(1, "/repo-1"), db, credentials)
             self.assertEqual(duplicate.id, ids[0])
         async with self.factory() as db:
             with self.assertRaises(HTTPException) as error:

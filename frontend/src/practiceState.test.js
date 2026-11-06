@@ -164,3 +164,18 @@ test('исходный коммит остаётся на dev, а main полу�
   assert.ok(paths.some(path => path.source === 'base' && path.target === copy.key && path.color === 'var(--accent)'))
   assert.deepEqual(graph, repositoryGraph(history.at(-1).state, JSON.parse(JSON.stringify(history))))
 })
+
+test('нормализованные кадры содержат только новые коммиты, HEAD берётся из текущего состояния', () => {
+  const base = { id: 'base', parents: [] }, tip = { id: 'tip', parents: ['base'] }
+  const repo = (commits, main, dev, branch = 'main') => ({ kind: 'repository', path: '/repo', commits,
+    refs: [`refs/heads/main ${main}`, `refs/heads/dev ${dev}`], head: branch === 'main' ? main : dev, branch, head_kind: 'branch' })
+  const history = [
+    { state: repo([base], 'base', 'base') },
+    { state: repo([tip], 'base', 'tip', 'dev') },
+    { state: repo([], 'tip', 'tip') },
+  ]
+  const graph = repositoryGraph(repo([tip, base], 'tip', 'tip', 'dev'), history)
+  assert.equal(graph.nodes.filter(node => node.id === 'tip').length, 2)
+  assert.deepEqual(graph.nodes.find(node => node.isHead).refNames, ['dev'])
+  assert.ok(graph.nodes.find(node => node.repeated).refNames.includes('main'))
+})

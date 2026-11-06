@@ -5,3 +5,6 @@ export const practiceApi = id => `/api/v1/practice-sessions/${encodeURIComponent
 export const practiceEvents = id => `/ws/practice-sessions/${encodeURIComponent(id)}`
 
 export const practiceHistory = (id, after, through) => `/api/v1/practice-sessions/${encodeURIComponent(id)}/snapshots?after_id=${after}&through_id=${through}`
+
+export const worktreeApi = id => `/api/v1/practice-sessions/${encodeURIComponent(id)}/worktree`
+export const worktreeEvents = id => `/ws/practice-sessions/${encodeURIComponent(id)}/worktree`

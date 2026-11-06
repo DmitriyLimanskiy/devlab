@@ -38,6 +38,7 @@ class Observer:
         snapshot,
         status_path=None,
         on_state=None,
+        on_worktree=None,
         internal_dir=None,
     ):
         self.folder, self.events, self.snapshot = (
@@ -54,6 +55,7 @@ class Observer:
             Path(internal_dir).resolve() if internal_dir is not None else None
         )
         self.on_state = on_state
+        self.on_worktree = on_worktree
         self.stop = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.state = None
@@ -91,6 +93,8 @@ class Observer:
                 self.version = version if type(version) is int and version >= 0 else 0
             except (OSError, ValueError, AttributeError):
                 self.version = 0
+            if self.on_worktree is not None:
+                self.on_worktree(state)
             if self.on_state is not None:
                 self.on_state(state)
             self.send_pending = False
@@ -120,6 +124,8 @@ class Observer:
             self.state = state
         # Опрос обновляет локальный файл, доставка привязана к завершению команды
         if self.send_pending:
+            if self.on_worktree is not None:
+                self.on_worktree(state)
             if self.on_state is not None:
                 self.on_state(state)
             self.send_pending = False

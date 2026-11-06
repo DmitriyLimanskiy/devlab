@@ -19,7 +19,7 @@ export function usePracticeState(sessionId) {
         const response = await fetch(practiceApi(sessionId), { signal: controller.signal, cache: 'no-store' })
         if (!response.ok) throw new Error('Снимок недоступен')
         const data = parsePracticeState(await response.json(), sessionId)
-        const through = data.snapshot?.id ?? 0
+        const through = data.graph_history_id ?? 0
         while (cursor < through) {
           const historyResponse = await fetch(practiceHistory(sessionId, cursor, through), { signal: controller.signal, cache: 'no-store' })
           if (!historyResponse.ok) throw new Error('История недоступна')

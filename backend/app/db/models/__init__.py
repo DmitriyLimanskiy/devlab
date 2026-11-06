@@ -3,4 +3,14 @@
 from .course import Course, CourseStep
 from .practice import PracticeSession, PracticeSnapshot
 
-__all__ = ["Course", "CourseStep", "PracticeSession", "PracticeSnapshot"]
+__all__ = [
+    "Course",
+    "CourseStep",
+    "PracticeSession",
+    "PracticeSnapshot",
+    "GraphEvent",
+    "RepositoryCommit",
+    "SnapshotReceipt",
+]
+
+from .repository import GraphEvent, RepositoryCommit, SnapshotReceipt

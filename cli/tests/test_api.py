@@ -167,14 +167,10 @@ class ApiTest(unittest.TestCase):
                     )
                     until(b" > ")
 
-                    def wait_state(predicate):
+                    def wait_state(predicate, endpoint="/api/v1/cli-send-snapshot"):
                         deadline = time.monotonic() + 8
                         while time.monotonic() < deadline:
-                            sent = [
-                                r[2]
-                                for r in self.records
-                                if r[1] == "/api/v1/cli-send-snapshot"
-                            ]
+                            sent = [r[2] for r in self.records if r[1] == endpoint]
                             if sent and predicate(sent[-1]["state"]):
                                 return sent[-1]
                             time.sleep(0.05)
@@ -211,18 +207,13 @@ class ApiTest(unittest.TestCase):
                     self.assertEqual(sent[-1]["version"], committed["version"])
                     os.write(master, b"pwd\n")
                     until(b" > ")
-                    modified = wait_state(
-                        lambda state: any(
-                            item["path"] == "file" and item["worktree"] == "M"
-                            for item in state.get("files", [])
-                        )
-                    )
-                    self.assertGreater(modified["version"], committed["version"])
-                    self.assertFalse(
-                        any(
-                            ".sync-cache" in item["path"]
-                            for item in modified["state"]["files"]
-                        )
+                    graph_requests = [
+                        r[2]
+                        for r in self.records
+                        if r[1] == "/api/v1/cli-send-snapshot"
+                    ]
+                    self.assertEqual(
+                        graph_requests[-1]["version"], committed["version"]
                     )
                 os.write(master, b"exit\n")
                 until("Сессия DevLab завершена".encode())
@@ -257,7 +248,7 @@ class ApiTest(unittest.TestCase):
         self.run_cli_flow()
 
     @unittest.skipUnless(sys.platform == "darwin", "Терминальная версия для macOS")
-    def test_external_edits_are_sent_after_next_command(self):
+    def test_external_edits_do_not_enqueue_graph_snapshots(self):
         self.run_cli_flow(continuous=True)
 
     def test_missing_session_allows_local_mode(self):

@@ -2,21 +2,23 @@ import asyncio
 from typing import Annotated
 from uuid import UUID
 
-from app.api.schemas.practice import PracticeState, StoredSnapshot, SnapshotHistory
+from app.api.schemas.practice import PracticeState, SnapshotHistory, StoredSnapshot
 from app.db.models.practice import PracticeSession, PracticeSnapshot
+from app.db.models.repository import GraphEvent, RepositoryCommit
 from app.db.session import get_session, get_session_factory
 from app.services.cli_presence import presence
 from app.services.practice_events import events
+from app.services.repository_state import restore_current
 from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
-    Response,
     Query,
+    Response,
     WebSocket,
     WebSocketDisconnect,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["practice"])
@@ -33,7 +35,13 @@ async def get_practice_state(
     # Один SELECT: метаданные сессии и снимок видны в одном состоянии БД
     row = (
         await db.execute(
-            select(PracticeSession, PracticeSnapshot)
+            select(
+                PracticeSession,
+                PracticeSnapshot,
+                select(func.max(GraphEvent.id))
+                .where(GraphEvent.session_id == session_id)
+                .scalar_subquery(),
+            )
             .outerjoin(
                 PracticeSnapshot, PracticeSnapshot.session_id == PracticeSession.id
             )
@@ -46,7 +54,7 @@ async def get_practice_state(
     ).first()
     if row is None:
         raise HTTPException(404, "Сессия не найдена")
-    session, snapshot = row
+    session, snapshot, history_id = row
     response.headers["Cache-Control"] = "no-store"
     lease = (
         presence.remaining(session.id, session.generation)
@@ -60,7 +68,10 @@ async def get_practice_state(
         status=session.status,
         generation=session.generation,
         connected_at=session.connected_at,
-        snapshot=StoredSnapshot.model_validate(snapshot) if snapshot else None,
+        snapshot=StoredSnapshot.model_validate(await restore_current(db, snapshot))
+        if snapshot
+        else None,
+        graph_history_id=history_id or 0,
     )
 
 
@@ -77,20 +88,81 @@ async def get_snapshot_history(
 ):
     if await db.get(PracticeSession, session_id) is None:
         raise HTTPException(404, "Сессия не найдена")
-    query = select(PracticeSnapshot).where(
-        PracticeSnapshot.session_id == session_id,
-        PracticeSnapshot.id > after_id,
-    )
+    query = select(GraphEvent).where(GraphEvent.session_id == session_id)
     if through_id is not None:
-        query = query.where(PracticeSnapshot.id <= through_id)
+        query = query.where(GraphEvent.id <= through_id)
+    # Предыдущие изменения refs нужны для восстановления начала страницы
+    events_before = (
+        await db.scalars(query.where(GraphEvent.id <= after_id).order_by(GraphEvent.id))
+    ).all()
     rows = list(
-        (await db.scalars(query.order_by(PracticeSnapshot.id).limit(limit + 1))).all()
+        (
+            await db.scalars(
+                query.where(GraphEvent.id > after_id)
+                .order_by(GraphEvent.id)
+                .limit(limit + 1)
+            )
+        ).all()
     )
+    page = rows[:limit]
+    commits = (
+        (
+            await db.scalars(
+                select(RepositoryCommit)
+                .where(
+                    RepositoryCommit.session_id == session_id,
+                    RepositoryCommit.first_event_id.in_([row.id for row in page]),
+                )
+                .order_by(RepositoryCommit.sha)
+            )
+        ).all()
+        if page
+        else []
+    )
+    refs, targets, repository_id = {}, {}, None
+    snapshots = []
+    for event in [*events_before, *page]:
+        if event.repository_id != repository_id:
+            refs, targets = {}, {}
+            repository_id = event.repository_id
+        for name, change in event.ref_changes.items():
+            if change["after"] is None:
+                refs.pop(name, None)
+                targets.pop(name, None)
+            else:
+                refs[name] = change["after"]
+                if change["commit"] is None:
+                    targets.pop(name, None)
+                else:
+                    targets[name] = change["commit"]
+        if event.id <= after_id:
+            continue
+        state = dict(event.context)
+        if state["kind"] == "repository":
+            state.update(
+                refs=[f"{name} {sha}" for name, sha in sorted(refs.items())],
+                ref_commits=dict(targets),
+                files=[],
+                operations=[],
+                commits=[
+                    {"id": commit.sha, "parents": commit.parents}
+                    for commit in commits
+                    if commit.first_event_id == event.id
+                ],
+            )
+        snapshots.append(
+            StoredSnapshot(
+                id=event.id,
+                session_id=session_id,
+                schema_version=1,
+                generation=event.generation,
+                version=event.version,
+                state=state,
+                received_at=event.received_at,
+            )
+        )
     response.headers["Cache-Control"] = "no-store"
-    return SnapshotHistory(
-        snapshots=[StoredSnapshot.model_validate(row) for row in rows[:limit]],
-        has_more=len(rows) > limit,
-    )
+    return SnapshotHistory(snapshots=snapshots, has_more=len(rows) > limit)
 
 
 @router.websocket("/ws/practice-sessions/{session_id}")
@@ -101,8 +173,12 @@ async def practice_events(websocket: WebSocket, session_id: UUID):
     if exists is None:
         await websocket.close(code=1008)
         return
+    await stream_events(websocket, session_id, events)
+
+
+async def stream_events(websocket, session_id, bus):
     await websocket.accept()
-    with events.subscribe(session_id) as queue:
+    with bus.subscribe(session_id) as queue:
         # ready отправляется после регистрации, затем браузер читает HTTP-снимок
         await websocket.send_json({"type": "ready"})
         receiver = asyncio.create_task(websocket.receive_text())

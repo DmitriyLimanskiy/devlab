@@ -70,6 +70,7 @@ class SnapshotSender:
 
     def publish(self, state):
         # Снимок копируется: новые состояния не должны менять тело повторного запроса
+        state = {**state, "files": []} if state.get("kind") == "repository" else state
         canonical = json.dumps(state, sort_keys=True, ensure_ascii=True)
         with self.condition:
             if self.closed or canonical == self.last_state:

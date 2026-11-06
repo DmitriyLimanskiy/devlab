@@ -51,7 +51,24 @@ function Files({ files, column, previous }) {
     </li>
   })}</ul>
 }
-export function GitRepository({ snapshot, history }) {
+function WorkingFiles({ worktree }) {
+  const state = worktree?.data?.state
+  const memory = useRef(null)
+  const previous = memory.current?.kind === 'repository' && memory.current.path === state?.path ? memory.current : null
+  useLayoutEffect(() => { memory.current = state }, [state])
+  const repository = state?.kind === 'repository'
+  const empty = !state ? 'Ожидаем данные файлов от CLI' : state.kind === 'no_repository' ? 'В выбранной папке нет репозитория Git' : 'Не удалось прочитать рабочую папку'
+  return <>
+    {worktree?.error && <p className="snapshot-warning">Не удалось обновить файлы · показаны последние полученные данные</p>}
+    <div className="git-file-flow">
+      <Panel icon={Folder} title="Рабочая папка" detail="Working directory" type="files">{repository ? <Files files={state.files} column="worktree" previous={previous} /> : <Empty>{empty}</Empty>}</Panel>
+      <ChevronRight className="staging-chevron" size={28} strokeWidth={1.5} aria-hidden="true" />
+      <Panel icon={Layers} title="Индекс" detail="Staging area" type="index">{repository ? <Files files={state.files} column="index" previous={previous} /> : <Empty>{empty}</Empty>}</Panel>
+    </div>
+  </>
+}
+
+export function GitRepository({ snapshot, history, worktree }) {
   const current = snapshot?.state
   const memory = useRef({ snapshot: null, previous: null })
   if (memory.current.snapshot !== snapshot) {
@@ -64,17 +81,13 @@ export function GitRepository({ snapshot, history }) {
     const animations = [...(root.current?.querySelectorAll('.git-change') ?? [])].map(element =>
       element.animate([{ backgroundColor: getComputedStyle(element).getPropertyValue('--change-highlight').trim() }, { backgroundColor: 'transparent' }], { duration: parseFloat(getComputedStyle(element).getPropertyValue('--motion-change')) || 650, easing: 'ease-out' }))
     return () => animations.forEach(animation => animation.cancel())
-  }, [snapshot])
+  }, [snapshot, worktree?.data])
   const previous = memory.current.previous
   const repository = current?.kind === 'repository'
   const empty = !current ? 'Запусти devlab и выбери папку' : current.kind === 'no_repository' ? 'В выбранной папке нет репозитория Git · выполни git init' : 'Не удалось прочитать Git · ожидаем обновление'
   return <div ref={root} className="git-repository">
     {repository && <div className="git-summary"><span><GitBranch size={15} />{current.head_kind === 'detached' ? `Detached HEAD · ${current.head.slice(0, 8)}` : current.branch}</span><span>{current.head_kind === 'unborn' ? 'Ветка без коммитов' : commitCount(current.commits.length)}</span>{current.operations.map(operation => <span className="operation" key={operation}>{operation}</span>)}</div>}
     <Panel icon={GitCommitHorizontal} title="История репозитория" detail="Коммиты, ветки и HEAD" type="history">{repository ? <History key={`${snapshot.session_id}:${current.path}`} state={current} previous={previous} history={history} /> : <Empty>{empty}</Empty>}</Panel>
-    <div className="git-file-flow">
-      <Panel icon={Folder} title="Рабочая папка" detail="Working directory" type="files">{repository ? <Files files={current.files} column="worktree" previous={previous} /> : <Empty>Нет данных рабочих файлов</Empty>}</Panel>
-      <ChevronRight className="staging-chevron" size={28} strokeWidth={1.5} aria-hidden="true" />
-      <Panel icon={Layers} title="Индекс" detail="Staging area" type="index">{repository ? <Files files={current.files} column="index" previous={previous} /> : <Empty>Нет данных индекса</Empty>}</Panel>
-    </div>
+    <WorkingFiles worktree={worktree} />
   </div>
 }

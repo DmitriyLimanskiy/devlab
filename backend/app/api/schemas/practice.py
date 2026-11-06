@@ -21,6 +21,7 @@ class PracticeState(BaseModel):
     cli_lease_seconds: float
     connected_at: datetime | None
     snapshot: StoredSnapshot | None
+    graph_history_id: int = 0
 
 
 class SnapshotHistory(BaseModel):

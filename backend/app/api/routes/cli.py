@@ -11,10 +11,12 @@ from app.api.schemas.cli import (
 )
 from app.api.schemas.snapshot import SnapshotReq, SnapshotRes
 from app.db.models.course import Course
-from app.db.models.practice import PracticeSession, PracticeSnapshot
+from app.db.models.practice import PracticeSession
 from app.db.session import get_session
 from app.services.cli_presence import presence
 from app.services.practice_events import events
+from app.services.live_worktree import live_worktree
+from app.services.repository_state import store_state
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
@@ -49,6 +51,9 @@ async def cli_connect(
     practice_session.connected_at = datetime.now(UTC)
 
     await db.commit()
+    live_worktree.bind(
+        practice_session.id, practice_session.generation, practice_session.key_hash
+    )
     presence.remove(practice_session.id)
     events.publish(practice_session.id)
 
@@ -70,47 +75,12 @@ async def cli_send_state(
 ):
     await authorized_session(db, snapshot.session_id, snapshot.generation, credentials)
 
-    state = snapshot.state.model_dump(mode="json")
-    saved = await db.scalar(
-        select(PracticeSnapshot).where(
-            PracticeSnapshot.session_id == snapshot.session_id,
-            PracticeSnapshot.generation == snapshot.generation,
-            PracticeSnapshot.version == snapshot.version,
-        )
-    )
-    if saved is not None:
-        if saved.schema_version != snapshot.schema_version or saved.state != state:
-            raise HTTPException(409, "Эта версия уже сохранена с другим содержимым")
-        await db.commit()
-        return SnapshotRes(
-            id=saved.id,
-            session_id=saved.session_id,
-            generation=saved.generation,
-            version=saved.version,
-        )
-    latest = await db.scalar(
-        select(PracticeSnapshot)
-        .where(PracticeSnapshot.session_id == snapshot.session_id)
-        .order_by(PracticeSnapshot.generation.desc(), PracticeSnapshot.version.desc())
-        .limit(1)
-    )
-    if latest is not None and (snapshot.generation, snapshot.version) <= (
-        latest.generation,
-        latest.version,
-    ):
-        raise HTTPException(409, "Версия снимка устарела")
-    local_snapshot = PracticeSnapshot(
-        session_id=snapshot.session_id,
-        schema_version=snapshot.schema_version,
-        generation=snapshot.generation,
-        version=snapshot.version,
-        state=state,
-    )
-    db.add(local_snapshot)
+    receipt, changed = await store_state(db, snapshot)
     await db.commit()
-    events.publish(snapshot.session_id)
+    if changed:
+        events.publish(snapshot.session_id)
     return SnapshotRes(
-        id=local_snapshot.id,
+        id=receipt.id,
         session_id=snapshot.session_id,
         generation=snapshot.generation,
         version=snapshot.version,

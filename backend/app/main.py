@@ -11,3 +11,7 @@ app.include_router(git_router)
 app.include_router(cli)
 
 app.include_router(practice_router)
+
+from app.api.routes.worktree import router as worktree_router
+
+app.include_router(worktree_router)

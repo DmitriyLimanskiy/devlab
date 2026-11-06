@@ -1,4 +1,5 @@
 import { GitRepository } from './GitRepository'
+import { useWorktree } from './useWorktree'
 import { usePracticeState } from './usePracticeState'
 import { ArrowLeft, GitBranch, Terminal, FolderOpen } from 'lucide-react'
 import { pages } from './routes'
@@ -18,9 +19,10 @@ function StepContent({ content }) {
 
 export function GitCourse({ steps, sessionId }) {
   const live = usePracticeState(sessionId)
+  const worktree = useWorktree(sessionId)
   const snapshot = live.data?.snapshot
   const connected = !live.error && live.data?.status === 'active' && live.data?.cli_connected
-  const status = live.error ? 'Нет связи с сервером' : connected ? 'CLI подключен' : live.data ? 'CLI не подключен' : 'Подключение…'
+  const status = live.error ? (worktree.data && !worktree.error ? 'Файлы доступны · история графа недоступна' : 'Нет связи с сервером') : connected ? 'CLI подключен' : live.data ? 'CLI не подключен' : 'Подключение…'
   return <section className="git-course" aria-labelledby="git-title">
     <a className="back-link" href={pages.catalog}><ArrowLeft size={15} />Каталог курсов</a>
     <header className="course-heading">
@@ -41,9 +43,9 @@ export function GitCourse({ steps, sessionId }) {
       </aside>
       <div className="repository-workspace">
         <div className="repository-toolbar"><span><GitBranch size={17} />Репозиторий</span><Status active={connected}>{status}</Status></div>
-        <div className="directory-info"><span><FolderOpen size={16} />Рабочая директория</span><code>{snapshot?.state.path ?? 'Выбери папку в CLI'}</code></div>
+        <div className="directory-info"><span><FolderOpen size={16} />Рабочая директория</span><code>{worktree.data?.state?.path ?? snapshot?.state.path ?? 'Выбери папку в CLI'}</code></div>
         {live.data?.status === 'closed' && <p className="snapshot-warning">Сессия закрыта</p>}
-        <GitRepository snapshot={snapshot} history={live.data?.history} />
+        <GitRepository snapshot={snapshot} history={live.data?.history} worktree={worktree} />
       </div>
     </div>
   </section>
