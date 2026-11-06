@@ -44,7 +44,20 @@ export function commitCount(count) {
 }
 
 const branchPalette = ['var(--branch-violet)', 'var(--branch-orange)', 'var(--branch-green)', 'var(--branch-pink)']
+function isAncestor(byId, ancestor, descendant) {
+  const pending = [descendant], seen = new Set()
+  while (pending.length) {
+    const id = pending.pop()
+    if (id === ancestor) return true
+    if (seen.has(id)) continue
+    seen.add(id)
+    pending.push(...(byId.get(id)?.parents ?? []))
+  }
+  return false
+}
+
 export function graphLayout(commits, refs = [], head = null, previous = null) {
+  const step = (previous?.step ?? 0) + 1
   const byId = new Map(commits.map(c => [c.id, c]))
   const branches = refs.filter(r => r.startsWith('refs/heads/')).map(ref => {
     const split = ref.lastIndexOf(' ')
@@ -70,14 +83,18 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
     return color
   }
   branches.forEach(b => colorFor(b.name))
-  function claim(id, name) {
-    if (!byId.has(id) || lanes.has(id)) return
+  function ensureLane(name) {
     let lane = laneNames.indexOf(name)
     if (lane < 0) {
       lane = laneNames.length
       laneNames.push(name)
       laneColors.push(lane === 0 ? 'var(--accent)' : colorFor(name))
     }
+    return lane
+  }
+  function claim(id, name) {
+    if (!byId.has(id) || lanes.has(id)) return
+    const lane = ensureLane(name)
     while (byId.has(id) && !lanes.has(id)) {
       lanes.set(id, lane)
       id = byId.get(id).parents[0]
@@ -103,21 +120,15 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
   const branchFlows = [...(previous?.branchFlows ?? [])]
   for (const branch of branches) {
     const from = previous?.branchTips?.[branch.name]
-    const oldTip = previous?.nodes.find(node => node.id === from)
-    const newTip = previous?.nodes.find(node => node.id === branch.id)
-    if (!oldTip || !newTip || oldTip.lane === newTip.lane || from === branch.id) continue
-    let cursor = branch.id
-    const visited = new Set()
-    while (cursor !== from && byId.has(cursor) && !visited.has(cursor)) {
-      visited.add(cursor)
-      cursor = byId.get(cursor).parents[0]
-    }
-    if (cursor !== from) continue
-    const key = `${branch.name}:${from}:${branch.id}`
+    if (!from || from === branch.id || !byId.has(branch.id)) continue
+    // Указатель может стоять на исходном узле другой ветки, но его линия своя
+    const lane = ensureLane(branch.name)
+    if (lanes.get(branch.id) === lane) continue
+    const key = `${branch.name}:${branch.id}`
     if (!branchFlows.some(flow => flow.key === key)) branchFlows.push({
-      key, from, to: branch.id, name: branch.name,
-      color: previous.lanes[newTip.lane].color,
-      targetColor: previous.lanes[oldTip.lane].color,
+      key, from, to: branch.id, name: branch.name, step,
+      advance: isAncestor(byId, from, branch.id),
+      color: laneColors[lanes.get(branch.id)], targetColor: laneColors[lane],
     })
   }
   const positions = new Map()
@@ -125,10 +136,10 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
     const lane = lanes.get(commit.id)
     const position = { x: 90 + depth(commit.id) * 170, y: 70 + lane * 120 }
     positions.set(commit.id, position)
-    return { ...commit, ...position, lane, color: laneColors[lane] }
+    return { ...commit, ...position, lane, color: laneColors[lane], seenStep: previous?.nodes.find(n => n.id === commit.id)?.seenStep ?? step }
   })
   // Прореживаем пустые линии, чтобы ограниченная история не наращивала высоту
-  const visibleLanes = [...new Set([0, ...nodes.map(n => n.lane)])].sort((a, b) => a - b)
+  const visibleLanes = [...new Set([...nodes.map(n => n.lane), ...branchFlows.map(flow => laneNames.indexOf(flow.name))])].filter(lane => lane >= 0).sort((a, b) => a - b)
   nodes.forEach(node => {
     node.lane = visibleLanes.indexOf(node.lane)
     node.y = 70 + node.lane * 120
@@ -136,13 +147,13 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
   })
   const renderedLanes = visibleLanes.map(i => ({ name: laneNames[i], color: laneColors[i] }))
   const historicalLabels = renderedLanes.flatMap((lane, index) => {
-    if (index === 0 || !lane.name || lane.name === 'HEAD' || lane.name.startsWith('Линия ')) return []
+    if (lane.name === main?.name || !lane.name || lane.name === 'HEAD' || lane.name.startsWith('Линия ')) return []
     const tip = nodes.filter(n => n.lane === index).sort((a, b) => b.x - a.x)[0]
     return tip && !branches.some(b => b.name === lane.name && b.id === tip.id)
       ? [{ id: tip.id, name: lane.name, color: lane.color }] : []
   })
   nodes.sort((a, b) => a.x - b.x || a.y - b.y)
-  return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, renderedLanes.length * 120 + 20, branchFlows.length ? 260 : 0), lanes: renderedLanes, historicalLabels, branchFlows, branchTips: Object.fromEntries(branches.map(b => [b.name, b.id])) }
+  return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, renderedLanes.length * 120 + 20, branchFlows.length ? 260 : 0), step, lanes: renderedLanes, historicalLabels, branchFlows, branchTips: Object.fromEntries(branches.map(b => [b.name, b.id])) }
 }
 
 export function graphRefs(state) {
@@ -191,27 +202,34 @@ function displayGraph(graph, state) {
   const nodes = graph.nodes.map(node => ({ ...node, key: node.id, refNames: [] }))
   const byId = new Map(nodes.map(node => [node.id, node]))
   const edges = []
+  function occurrence(id, lane, step) {
+    return nodes.filter(node => node.id === id && node.seenStep <= step)
+      .sort((a, b) => Math.abs(a.lane - lane) - Math.abs(b.lane - lane) || b.seenStep - a.seenStep)[0]
+  }
   for (const flow of graph.branchFlows) {
-    const original = byId.get(flow.to)
-    const from = [...nodes].reverse().find(node => node.id === flow.from && node.refBranch === flow.name) ?? byId.get(flow.from)
-    if (!original || !from) continue
-    const copy = { ...original, key: `copy:${flow.key}`, lane: from.lane, y: from.y,
-      color: flow.targetColor, repeated: true, refBranch: flow.name, refNames: [] }
+    const lane = graph.lanes.findIndex(item => item.name === flow.name)
+    const original = occurrence(flow.to, lane, flow.step)
+    const from = occurrence(flow.from, lane, flow.step)
+    if (!original || lane < 0) continue
+    const copy = { ...original, key: `copy:${flow.key}`, lane, y: 70 + lane * 120,
+      seenStep: flow.step, color: flow.targetColor, repeated: true, refBranch: flow.name, refNames: [] }
     nodes.push(copy)
-    edges.push({ source: original.key, target: copy.key, color: flow.color,
+    edges.push({ source: original.key, target: copy.key, color: original.color,
       title: 'Тот же коммит на линии принимающей ветки' })
-    edges.push({ source: from.key, target: copy.key, color: flow.targetColor,
+    // reset/rebase не создают связь родителей со старой вершиной ветки
+    if (flow.advance && from) edges.push({ source: from.key, target: copy.key, color: flow.targetColor,
       title: `Наблюдавшееся продвижение ветки ${flow.name}` })
   }
   for (const node of nodes.filter(node => !node.repeated)) {
     node.parents.forEach((parent, index) => {
-      const source = [...nodes].reverse().find(candidate => candidate.id === parent && candidate.lane === node.lane) ?? byId.get(parent)
+      // Позднее отображение после reset не меняет уже существовавшие связи
+      const source = occurrence(parent, node.lane, node.seenStep)
       edges.push({ source: source?.key, target: node.key, boundary: !source,
         color: index > 0 && source ? source.color : node.color })
     })
   }
   const byKey = new Map(nodes.map(node => [node.key, node]))
-  const positioned = new Set()
+  const positioned = new Set(), occupied = new Map()
   function position(node, visiting = new Set()) {
     if (positioned.has(node.key) || visiting.has(node.key)) return
     visiting.add(node.key)
@@ -220,10 +238,15 @@ function displayGraph(graph, state) {
       position(parent, visiting)
       node.x = Math.max(node.x, parent.x + 170)
     }
+    const slots = occupied.get(node.lane) ?? new Set()
+    while (slots.has(node.x)) node.x += 170
+    slots.add(node.x)
+    occupied.set(node.lane, slots)
     visiting.delete(node.key)
     positioned.add(node.key)
   }
-  nodes.forEach(node => position(node))
+  // Ранее наблюдавшиеся узлы занимают место раньше переписанной истории
+  ;[...nodes].sort((a, b) => a.seenStep - b.seenStep || a.x - b.x || a.id.localeCompare(b.id)).forEach(node => position(node))
   for (const ref of graphRefs(state)) {
     const copy = [...nodes].reverse().find(node => node.id === ref.id && node.refBranch === ref.name)
     const target = copy ?? byId.get(ref.id)

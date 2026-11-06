@@ -179,3 +179,84 @@ test('нормализованные кадры содержат только н
   assert.deepEqual(graph.nodes.find(node => node.isHead).refNames, ['dev'])
   assert.ok(graph.nodes.find(node => node.repeated).refNames.includes('main'))
 })
+
+const graphRepo = (commits, heads, branch = 'dev') => ({ kind: 'repository', path: '/repo',
+  commits, refs: Object.entries(heads).map(([name, id]) => `refs/heads/${name} ${id}`),
+  branch, head_kind: 'branch', head: heads[branch] })
+function assertForwardEdges(graph) {
+  const nodes = new Map(graph.nodes.map(node => [node.key, node]))
+  assert.equal(new Set(graph.nodes.map(node => `${node.lane}:${node.x}`)).size, graph.nodes.length)
+  for (const edge of graph.edges) {
+    if (edge.source) assert.ok(nodes.get(edge.source).x < nodes.get(edge.target).x, `${edge.source} → ${edge.target}`)
+  }
+}
+
+test('fix1 → dev → main: второй родитель merge и следующий commit сохраняют линию dev', () => {
+  const base = { id: 'base', parents: [] }, d = { id: 'd', parents: ['base'] }
+  const f1 = { id: 'f1', parents: ['d'] }, f2 = { id: 'f2', parents: ['f1'] }
+  const x = { id: 'x', parents: ['base'] }, m = { id: 'm', parents: ['x', 'f2'] }, next = { id: 'next', parents: ['m'] }
+  const states = [
+    graphRepo([base], { main: 'base' }, 'main'),
+    graphRepo([], { main: 'base', dev: 'base' }),
+    graphRepo([d], { main: 'base', dev: 'd' }),
+    graphRepo([], { main: 'base', dev: 'd', fix1: 'd' }, 'fix1'),
+    graphRepo([f1, f2], { main: 'base', dev: 'd', fix1: 'f2' }, 'fix1'),
+    graphRepo([x], { main: 'x', dev: 'd', fix1: 'f2' }, 'main'),
+    graphRepo([], { main: 'x', dev: 'f2', fix1: 'f2' }),
+    graphRepo([m], { main: 'm', dev: 'f2', fix1: 'f2' }, 'main'),
+    graphRepo([], { main: 'm', dev: 'm', fix1: 'f2' }),
+    graphRepo([next], { main: 'm', dev: 'next', fix1: 'f2' }),
+    graphRepo([], { main: 'next', dev: 'next', fix1: 'f2' }, 'main'),
+  ]
+  const history = states.map(state => ({ state }))
+  const graph = repositoryGraph(states.at(-1), history)
+  const copyFix = graph.nodes.find(n => n.id === 'f2' && n.refBranch === 'dev')
+  const copyMerge = graph.nodes.find(n => n.id === 'm' && n.refBranch === 'dev')
+  const nextNode = graph.nodes.find(n => n.id === 'next' && !n.repeated)
+  assert.equal(graph.lanes[copyMerge.lane].name, 'dev')
+  assert.equal(copyFix.lane, copyMerge.lane)
+  assert.equal(nextNode.lane, copyMerge.lane)
+  assert.ok(graph.edges.some(e => e.source === copyFix.key && e.target === copyMerge.key))
+  assert.ok(graph.edges.some(e => e.source === copyMerge.key && e.target === nextNode.key))
+  assert.ok(graph.edges.some(e => e.source === copyFix.key && e.target === 'm'))
+  assert.deepEqual(graph.nodes.find(n => n.key === 'm').parents, ['x', 'f2'])
+  assert.deepEqual(graph.nodes.find(n => n.id === 'f2' && !n.repeated).refNames, ['fix1'])
+  assertForwardEdges(graph)
+  assert.deepEqual(graph, repositoryGraph(states.at(-1), JSON.parse(JSON.stringify(history))))
+})
+
+test('reset и rebase не добавляют ложную связь со старой вершиной и не накладывают узлы', () => {
+  const base = { id: 'base', parents: [] }, old = { id: 'old', parents: ['base'] }, fresh = { id: 'fresh', parents: ['base'] }
+  const states = [
+    graphRepo([base], { main: 'base', dev: 'base' }),
+    graphRepo([old], { main: 'base', dev: 'old' }),
+    graphRepo([], { main: 'base', dev: 'base' }),
+    graphRepo([fresh], { main: 'base', dev: 'fresh' }),
+  ]
+  const graph = repositoryGraph(states.at(-1), states.map(state => ({ state })))
+  const reset = graph.nodes.find(n => n.id === 'base' && n.refBranch === 'dev')
+  assert.ok(reset)
+  assert.ok(!graph.edges.some(e => e.source === 'old' && e.target === reset.key))
+  assert.ok(graph.edges.some(e => e.source === reset.key && e.target === 'fresh'))
+  assertForwardEdges(graph)
+  const rewritten = repositoryGraph(graphRepo([base, old, fresh], { main: 'fresh', dev: 'fresh' }), [
+    { state: states[0] }, { state: states[1] },
+    { state: graphRepo([fresh], { main: 'fresh', dev: 'old' }, 'main') },
+    { state: graphRepo([], { main: 'fresh', dev: 'fresh' }) },
+  ])
+  const copy = rewritten.nodes.find(n => n.id === 'fresh' && n.refBranch === 'dev')
+  assert.ok(copy)
+  assert.ok(!rewritten.edges.some(e => e.source === 'old' && e.target === copy.key))
+  assertForwardEdges(rewritten)
+})
+
+test('снимок до первого коммита не оставляет пустую линию над main', () => {
+  const first = graphRepo([{ id: 'base', parents: [] }], { main: 'base' }, 'main')
+  const graph = repositoryGraph(first, [
+    { state: { ...first, head: null, head_kind: 'unborn', commits: [], refs: [] } },
+    { state: first },
+  ])
+  assert.equal(graph.nodes[0].lane, 0)
+  assert.equal(graph.lanes[0].name, 'main')
+  assert.equal(graph.historicalLabels.length, 0)
+})
