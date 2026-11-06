@@ -4,6 +4,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 from unittest.mock import patch
@@ -46,7 +47,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     await asyncio.sleep(0.01)
                 self.assertTrue(server.started)
 
-                async def request(path, body=None, key=None):
+                async def request(path, body=None, key=None, method=None):
                     def send():
                         headers = {"Content-Type": "application/json"}
                         if key:
@@ -57,11 +58,27 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                             if body is not None
                             else None,
                             headers=headers,
+                            method=method,
                         )
                         with urllib.request.urlopen(req, timeout=3) as response:
                             return json.load(response)
 
                     return await asyncio.to_thread(send)
+
+                opened = await request(
+                    "/api/v1/git-course", {"course_slug": "git-sandbox"}
+                )
+                self.assertEqual(opened["session_id"], str(course.session_id))
+                for body, status in [
+                    (None, 422),
+                    ({}, 422),
+                    ({"course_slug": ""}, 422),
+                    ({"course_slug": "python"}, 422),
+                    ({"course_slug": "git-not-found"}, 404),
+                ]:
+                    with self.assertRaises(urllib.error.HTTPError) as error:
+                        await request("/api/v1/git-course", body, method="POST")
+                    self.assertEqual(error.exception.code, status)
 
                 path = f"/api/v1/practice-sessions/{course.session_id}/snapshot"
                 self.assertIsNone((await request(path))["snapshot"])
@@ -71,7 +88,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 async with connect(ws_url) as ws:
                     self.assertEqual(json.loads(await ws.recv())["type"], "ready")
                     connection = await request(
-                        "/api/v1/cli-connect", {"course_slug": "git"}
+                        "/api/v1/cli-connect", {"course_slug": "git-sandbox"}
                     )
                     self.assertEqual(
                         json.loads(await ws.recv())["type"], "state_changed"
@@ -151,7 +168,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                         },
                     )
                 # После ротации сохраняется старый снимок с явным поколением
-                await request("/api/v1/cli-connect", {"course_slug": "git"})
+                await request("/api/v1/cli-connect", {"course_slug": "git-sandbox"})
                 data = await request(path)
                 self.assertGreater(data["generation"], data["snapshot"]["generation"])
             finally:
@@ -169,7 +186,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         await self.prepare_courses()
         course = await self.request()
         async with self.factory() as db:
-            connection = await cli_connect(CliConnectReq(course_slug="git"), db)
+            connection = await cli_connect(CliConnectReq(course_slug="git-sandbox"), db)
         credentials = HTTPAuthorizationCredentials(
             scheme="Bearer", credentials=connection.key
         )
@@ -231,7 +248,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         await self.prepare_courses()
         course = await self.request()
         async with self.factory() as db:
-            connection = await cli_connect(CliConnectReq(course_slug="git"), db)
+            connection = await cli_connect(CliConnectReq(course_slug="git-sandbox"), db)
         body = SnapshotReq(
             schema_version=1,
             session_id=course.session_id,
@@ -270,7 +287,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         await self.prepare_courses()
         course = await self.request()
         async with self.factory() as db:
-            connection = await cli_connect(CliConnectReq(course_slug="git"), db)
+            connection = await cli_connect(CliConnectReq(course_slug="git-sandbox"), db)
         credentials = HTTPAuthorizationCredentials(
             scheme="Bearer", credentials=connection.key
         )
@@ -293,7 +310,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 await cli_disconnect(body, db, credentials)
             self.assertEqual(presence.remaining(course.session_id, body.generation), 0)
             async with self.factory() as db:
-                newer = await cli_connect(CliConnectReq(course_slug="git"), db)
+                newer = await cli_connect(CliConnectReq(course_slug="git-sandbox"), db)
             async with self.factory() as db:
                 with self.assertRaises(HTTPException):
                     await cli_heartbeat(body, db, credentials)

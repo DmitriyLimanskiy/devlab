@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from app.api.schemas.courses.git_course import GitCourseRes
+from app.api.schemas.catalog.catalog import CatalogRes
+from app.api.schemas.courses.git_course import GitCourseReq, GitCourseRes
 from app.db.models.courses.course import Course, CourseStep
 from app.db.models.practice.practice import PracticeSession
 from app.db.session import get_session
@@ -12,14 +13,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(prefix="/api/v1", tags=["git-course"])
 
 
+@router.get("/git-course", response_model=list[CatalogRes])
+async def git_courses(
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> list[CatalogRes]:
+    courses = await db.scalars(
+        select(Course)
+        .where(Course.slug.startswith("git-"))
+        .order_by(Course.position, Course.id)
+    )
+    return [
+        CatalogRes(
+            id=course.slug,
+            title=course.title,
+            description=course.description,
+            status=course.status,
+            position=course.position,
+        )
+        for course in courses.all()
+    ]
+
+
 @router.post("/git-course", response_model=GitCourseRes)
 async def git_course(
     db: Annotated[AsyncSession, Depends(get_session)],
+    request: GitCourseReq,
 ) -> GitCourseRes:
-    course = await db.scalar(select(Course).where(Course.slug == "git"))
-
+    course = await db.scalar(select(Course).where(Course.slug == request.course_slug))
     if course is None:
-        raise HTTPException(status_code=404, detail="Курс Git не найден")
+        raise HTTPException(
+            status_code=404, detail=f"Курс {request.course_slug} не найден"
+        )
 
     # Создать сессию или получить существующую
     statement = insert(PracticeSession).values(
@@ -37,7 +61,7 @@ async def git_course(
     practice_session = await db.scalar(statement)
     await db.commit()
 
-    # Далее — получение шагов и формирование ответа
+    # Далее - получение шагов и формирование ответа
     steps = await db.scalars(
         select(CourseStep)
         .where(CourseStep.course_id == course.id)

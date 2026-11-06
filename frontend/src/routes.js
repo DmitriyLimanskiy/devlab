@@ -8,3 +8,5 @@ export const practiceHistory = (id, after, through) => `/api/v1/practice-session
 
 export const worktreeApi = id => `/api/v1/practice-sessions/${encodeURIComponent(id)}/worktree`
 export const worktreeEvents = id => `/ws/practice-sessions/${encodeURIComponent(id)}/worktree`
+
+export const gitCoursePage = slug => `${pages.git}?course=${encodeURIComponent(slug)}`

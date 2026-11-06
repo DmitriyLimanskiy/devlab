@@ -31,7 +31,7 @@ class NormalizedRepositoryTest(test_git_course.GitCourseTest):
         await self.prepare_courses()
         course = await self.request()
         async with self.factory() as db:
-            connection = await cli_connect(CliConnectReq(course_slug="git"), db)
+            connection = await cli_connect(CliConnectReq(course_slug="git-sandbox"), db)
         credentials = HTTPAuthorizationCredentials(
             scheme="Bearer", credentials=connection.key
         )

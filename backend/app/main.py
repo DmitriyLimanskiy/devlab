@@ -1,5 +1,3 @@
-from fastapi import FastAPI
-
 from app.api.routes.catalog.catalog import router as catalog_router
 from app.api.routes.cli.cli import router as cli_router
 from app.api.routes.cli.worktree import router as cli_worktree_router
@@ -9,8 +7,14 @@ from app.api.routes.practice.git_practice import router as practice_router
 from app.api.routes.practice.git_practice import ws_router as practice_ws_router
 from app.api.routes.practice.worktree import router as worktree_router
 from app.api.routes.practice.worktree import ws_router as worktree_ws_router
+from fastapi import FastAPI
 
-app = FastAPI(title="DevLab", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(
+    title="DevLab",
+    docs_url="/api/docs",
+    redoc_url=None,
+    openapi_url="/api/openapi.json",
+)
 
 app.include_router(catalog_router)
 app.include_router(git_router)

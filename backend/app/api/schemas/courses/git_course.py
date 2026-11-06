@@ -4,6 +4,12 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class GitCourseReq(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    course_slug: str = Field(min_length=1, max_length=100, pattern=r"^git-.+$")
+
+
 class CourseStepRes(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

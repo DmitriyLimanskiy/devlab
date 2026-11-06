@@ -3,7 +3,8 @@ import os
 import unittest
 from uuid import uuid4
 
-from app.api.routes.courses.git_course import git_course
+from app.api.routes.courses.git_course import git_course, git_courses
+from app.api.schemas.courses.git_course import GitCourseReq
 from app.db.base import Base
 from app.db.config import database_url
 from app.db.models import Course, CourseStep, PracticeSession
@@ -40,7 +41,7 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
     async def prepare_courses(self):
         async with self.factory() as db:
             git, other = (
-                Course(slug="git", title="Git"),
+                Course(slug="git-sandbox", title="Git"),
                 Course(slug="python", title="Python"),
             )
             db.add_all([git, other])
@@ -74,7 +75,7 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
 
     async def request(self):
         async with self.factory() as db:
-            return await git_course(db)
+            return await git_course(db, GitCourseReq(course_slug="git-sandbox"))
 
     async def test_parallel_opening_and_steps(self):
         await self.prepare_courses()
@@ -111,6 +112,76 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(HTTPException) as error:
             await self.request()
         self.assertEqual(error.exception.status_code, 404)
+
+
+class GitCourseTabsTest(GitCourseTest):
+    async def test_course_slug_is_not_limited_to_two_names(self):
+        async with self.factory() as db:
+            db.add(Course(slug="git-advanced", title="Новый курс", position=3))
+            await db.commit()
+            courses = await git_courses(db)
+            self.assertEqual([course.id for course in courses], ["git-advanced"])
+            self.assertEqual(courses[0].title, "Новый курс")
+            practice = await git_course(db, GitCourseReq(course_slug=courses[0].id))
+            self.assertEqual(practice.steps, [])
+            session = await db.get(PracticeSession, practice.session_id)
+            stored_course = await db.get(Course, session.course_id)
+            self.assertEqual(stored_course.slug, "git-advanced")
+
+    async def test_list_filters_courses_without_creating_sessions(self):
+        await self.prepare_courses()
+        async with self.factory() as db:
+            db.add(
+                Course(slug="git-full-course", title="Git — полный курс", position=2)
+            )
+            await db.commit()
+            courses = await git_courses(db)
+            self.assertEqual(
+                [course.id for course in courses], ["git-sandbox", "git-full-course"]
+            )
+            self.assertEqual(
+                await db.scalar(select(func.count()).select_from(PracticeSession)), 0
+            )
+
+    async def test_empty_list(self):
+        async with self.factory() as db:
+            self.assertEqual(await git_courses(db), [])
+
+    async def test_independent_sessions_and_empty_full_course_steps(self):
+        await self.prepare_courses()
+        sandbox = await self.request()
+        async with self.factory() as db:
+            db.add(
+                Course(slug="git-full-course", title="Git — полный курс", position=2)
+            )
+            await db.commit()
+            full = await git_course(db, GitCourseReq(course_slug="git-full-course"))
+            self.assertNotEqual(full.session_id, sandbox.session_id)
+            self.assertEqual(full.steps, [])
+            self.assertEqual(
+                (
+                    await git_course(db, GitCourseReq(course_slug="git-full-course"))
+                ).session_id,
+                full.session_id,
+            )
+            self.assertEqual(
+                (
+                    await git_course(db, GitCourseReq(course_slug="git-sandbox"))
+                ).session_id,
+                sandbox.session_id,
+            )
+            self.assertEqual(
+                await db.scalar(select(func.count()).select_from(PracticeSession)), 2
+            )
+
+    async def test_missing_full_course_does_not_replace_sandbox(self):
+        await self.prepare_courses()
+        sandbox = await self.request()
+        async with self.factory() as db:
+            with self.assertRaises(HTTPException) as error:
+                await git_course(db, GitCourseReq(course_slug="git-full-course"))
+            self.assertEqual(error.exception.status_code, 404)
+        self.assertEqual((await self.request()).session_id, sandbox.session_id)
 
 
 if __name__ == "__main__":
