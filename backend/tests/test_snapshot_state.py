@@ -62,6 +62,11 @@ class SnapshotStateTest(unittest.TestCase):
         )
         self.commit("base")
         self.git("tag", "-a", "v1", "-m", "tag")
+        state = self.validate(read_state(self.folder)).state
+        self.assertEqual(state.ref_commits["refs/tags/v1"], state.head)
+        self.assertFalse(state.history_truncated)
+        self.assertEqual(state.history_boundary, [])
+        self.assertFalse(state.is_shallow)
         self.git("mv", "file", "renamed file")
         self.assertEqual(
             self.validate(read_state(self.folder)).state.files[0].original_path, "file"

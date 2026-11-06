@@ -7,9 +7,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .project import ensure_state_ignored
 from .api import ApiClient, ApiError
 from .connection import choose_connection
+from .project import ensure_state_ignored
 
 
 def main() -> int:
@@ -41,9 +41,11 @@ def main() -> int:
 
     client = connection = None
     try:
-        if os.environ.get('DEVLAB_OFFLINE') != '1':
+        if os.environ.get("DEVLAB_OFFLINE") != "1":
             try:
-                client = ApiClient(os.environ.get('DEVLAB_SERVER_URL', 'http://127.0.0.1:8080'))
+                client = ApiClient(
+                    os.environ.get("DEVLAB_SERVER_URL", "http://127.0.0.1:8080")
+                )
             except ApiError as error:
                 print(f"  {error} Продолжаем локально")
             if client is not None:
@@ -80,21 +82,32 @@ def main() -> int:
             overwrite = True
             if snapshot.exists() or snapshot.is_symlink():
                 while True:
-                    answer = input("  state.json уже существует. Перезаписать сейчас? [yes/no]: ").strip().lower()
-                    if answer in {'yes', 'no'}:
-                        overwrite = answer == 'yes'
+                    answer = (
+                        input(
+                            "  state.json уже существует. Перезаписать сейчас? [yes/no]: "
+                        )
+                        .strip()
+                        .lower()
+                    )
+                    if answer in {"yes", "no"}:
+                        overwrite = answer == "yes"
                         break
                     print("  Введите yes или no")
                 if snapshot.is_symlink() or not snapshot.is_file():
-                    print("Нельзя перезаписать ссылку или каталог state.json", file=sys.stderr)
+                    print(
+                        "Нельзя перезаписать ссылку или каталог state.json",
+                        file=sys.stderr,
+                    )
                     return 1
                 if not overwrite:
-                    print("  Текущий state.json сохранён. Новые изменения будут записываться")
+                    print(
+                        "  Текущий state.json сохранён. Новые изменения будут записываться"
+                    )
             # Создаём файл до запуска bash, чтобы сразу проверить право записи
             ensure_state_ignored(folder)
             if overwrite and not snapshot.exists():
-                with snapshot.open('x') as stream:
-                    json.dump({'generator': 'devlab-cli'}, stream)
+                with snapshot.open("x") as stream:
+                    json.dump({"generator": "devlab-cli"}, stream)
         except (EOFError, KeyboardInterrupt):
             print("\n  Запуск отменён")
             return 0
@@ -108,6 +121,7 @@ def main() -> int:
         sender = None
         if connection is not None:
             from .sync import SnapshotSender
+
             sender = SnapshotSender(client, connection, folder)
             print("  Синхронизация будет работать в фоне\n", flush=True)
         try:

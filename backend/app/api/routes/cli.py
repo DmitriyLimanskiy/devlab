@@ -70,52 +70,47 @@ async def cli_send_state(
 ):
     await authorized_session(db, snapshot.session_id, snapshot.generation, credentials)
 
-    saved = await db.get(PracticeSnapshot, snapshot.session_id)
     state = snapshot.state.model_dump(mode="json")
-    duplicate = False
-
+    saved = await db.scalar(
+        select(PracticeSnapshot).where(
+            PracticeSnapshot.session_id == snapshot.session_id,
+            PracticeSnapshot.generation == snapshot.generation,
+            PracticeSnapshot.version == snapshot.version,
+        )
+    )
     if saved is not None:
-        if saved.generation > snapshot.generation:
-            raise HTTPException(
-                status_code=409,
-                detail="Сохранён снимок более нового поколения",
-            )
-
-        if saved.generation == snapshot.generation:
-            if saved.version > snapshot.version:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Версия снимка устарела",
-                )
-
-            if saved.version == snapshot.version:
-                if (
-                    saved.schema_version != snapshot.schema_version
-                    or saved.state != state
-                ):
-                    raise HTTPException(
-                        status_code=409,
-                        detail="Эта версия уже сохранена с другим содержимым",
-                    )
-
-                duplicate = True
-
-    if not duplicate:
-        if saved is None:
-            saved = PracticeSnapshot(session_id=snapshot.session_id)
-            db.add(saved)
-
-        saved.schema_version = snapshot.schema_version
-        saved.generation = snapshot.generation
-        saved.version = snapshot.version
-        saved.state = state
-        saved.received_at = datetime.now(UTC)
-
+        if saved.schema_version != snapshot.schema_version or saved.state != state:
+            raise HTTPException(409, "Эта версия уже сохранена с другим содержимым")
+        await db.commit()
+        return SnapshotRes(
+            id=saved.id,
+            session_id=saved.session_id,
+            generation=saved.generation,
+            version=saved.version,
+        )
+    latest = await db.scalar(
+        select(PracticeSnapshot)
+        .where(PracticeSnapshot.session_id == snapshot.session_id)
+        .order_by(PracticeSnapshot.generation.desc(), PracticeSnapshot.version.desc())
+        .limit(1)
+    )
+    if latest is not None and (snapshot.generation, snapshot.version) <= (
+        latest.generation,
+        latest.version,
+    ):
+        raise HTTPException(409, "Версия снимка устарела")
+    local_snapshot = PracticeSnapshot(
+        session_id=snapshot.session_id,
+        schema_version=snapshot.schema_version,
+        generation=snapshot.generation,
+        version=snapshot.version,
+        state=state,
+    )
+    db.add(local_snapshot)
     await db.commit()
-    if not duplicate:
-        events.publish(snapshot.session_id)
-
+    events.publish(snapshot.session_id)
     return SnapshotRes(
+        id=local_snapshot.id,
         session_id=snapshot.session_id,
         generation=snapshot.generation,
         version=snapshot.version,

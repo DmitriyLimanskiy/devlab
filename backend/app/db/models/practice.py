@@ -11,6 +11,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    UniqueConstraint,
     func,
     text,
 )
@@ -59,7 +60,7 @@ class PracticeSession(Base):
     )
 
     course: Mapped[Course] = relationship()
-    snapshot: Mapped["PracticeSnapshot | None"] = relationship(
+    snapshots: Mapped[list["PracticeSnapshot"]] = relationship(
         back_populates="session",
         passive_deletes="all",
     )
@@ -68,16 +69,19 @@ class PracticeSession(Base):
 class PracticeSnapshot(Base):
     __tablename__ = "practice_snapshots"
     __table_args__ = (
+        UniqueConstraint(
+            "session_id", "generation", "version", name="uq_practice_snapshots_delivery"
+        ),
         CheckConstraint("schema_version > 0", name="positive_schema_version"),
         CheckConstraint("generation > 0", name="positive_generation"),
         CheckConstraint("version > 0", name="positive_version"),
         CheckConstraint("jsonb_typeof(state) = 'object'", name="state_object"),
     )
 
+    id: Mapped[int] = mapped_column(primary_key=True)
     session_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("practice_sessions.id", ondelete="RESTRICT"),
-        primary_key=True,
     )
     schema_version: Mapped[int] = mapped_column(Integer)
     generation: Mapped[int] = mapped_column(BigInteger)
@@ -87,4 +91,4 @@ class PracticeSnapshot(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    session: Mapped[PracticeSession] = relationship(back_populates="snapshot")
+    session: Mapped[PracticeSession] = relationship(back_populates="snapshots")

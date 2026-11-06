@@ -2,7 +2,7 @@ import asyncio
 from typing import Annotated
 from uuid import UUID
 
-from app.api.schemas.practice import PracticeState, StoredSnapshot
+from app.api.schemas.practice import PracticeState, StoredSnapshot, SnapshotHistory
 from app.db.models.practice import PracticeSession, PracticeSnapshot
 from app.db.session import get_session, get_session_factory
 from app.services.cli_presence import presence
@@ -12,6 +12,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Response,
+    Query,
     WebSocket,
     WebSocketDisconnect,
 )
@@ -37,6 +38,10 @@ async def get_practice_state(
                 PracticeSnapshot, PracticeSnapshot.session_id == PracticeSession.id
             )
             .where(PracticeSession.id == session_id)
+            .order_by(
+                PracticeSnapshot.generation.desc(), PracticeSnapshot.version.desc()
+            )
+            .limit(1)
         )
     ).first()
     if row is None:
@@ -56,6 +61,35 @@ async def get_practice_state(
         generation=session.generation,
         connected_at=session.connected_at,
         snapshot=StoredSnapshot.model_validate(snapshot) if snapshot else None,
+    )
+
+
+@router.get(
+    "/api/v1/practice-sessions/{session_id}/snapshots", response_model=SnapshotHistory
+)
+async def get_snapshot_history(
+    session_id: UUID,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    after_id: int = Query(default=0, ge=0),
+    through_id: int | None = Query(default=None, ge=1),
+    limit: int = Query(default=100, ge=1, le=200),
+):
+    if await db.get(PracticeSession, session_id) is None:
+        raise HTTPException(404, "Сессия не найдена")
+    query = select(PracticeSnapshot).where(
+        PracticeSnapshot.session_id == session_id,
+        PracticeSnapshot.id > after_id,
+    )
+    if through_id is not None:
+        query = query.where(PracticeSnapshot.id <= through_id)
+    rows = list(
+        (await db.scalars(query.order_by(PracticeSnapshot.id).limit(limit + 1))).all()
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return SnapshotHistory(
+        snapshots=[StoredSnapshot.model_validate(row) for row in rows[:limit]],
+        has_more=len(rows) > limit,
     )
 
 

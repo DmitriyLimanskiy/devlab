@@ -13,10 +13,12 @@ import tty
 
 def _write_all(fd: int, data: bytes) -> None:
     while data:
-        data = data[os.write(fd, data):]
+        data = data[os.write(fd, data) :]
 
 
-def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sender=None) -> int:
+def run_bash(
+    bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sender=None
+) -> int:
     stdin, stdout = sys.stdin.fileno(), sys.stdout.fileno()
     original = termios.tcgetattr(stdin)
     from .observer import Observer
@@ -24,7 +26,11 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sen
     events, notify = os.pipe()
     os.set_inheritable(notify, True)
     with open(rc_path, "a") as rc:
-        rc.write("\nPROMPT_COMMAND='__devlab_status=$?; printf \"%s\\n\" \"$__devlab_status\" >&" + str(notify) + "'\n")
+        rc.write(
+            '\nPROMPT_COMMAND=\'__devlab_status=$?; printf "%s\\n" "$__devlab_status" >&'
+            + str(notify)
+            + "'\n"
+        )
     pid, master = pty.fork()
     if pid == 0:
         try:
@@ -41,12 +47,18 @@ def run_bash(bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sen
     presence = None
     if sender is not None:
         from .presence import PresenceReporter
+
         presence = PresenceReporter(sender.client, sender.connection)
         presence.start()
         sender.start()
-    observer = Observer(folder, events, snapshot, os.path.join(os.path.dirname(rc_path), "command-status.json"),
-                        on_state=sender.publish if sender is not None else None,
-                        internal_dir=sender.pending_path.parent if sender is not None else None)
+    observer = Observer(
+        folder,
+        events,
+        snapshot,
+        os.path.join(os.path.dirname(rc_path), "command-status.json"),
+        on_state=sender.publish if sender is not None else None,
+        internal_dir=sender.pending_path.parent if sender is not None else None,
+    )
     observer.preserve_existing = not write_snapshot
     observer.thread.start()
 

@@ -17,6 +17,7 @@ class SnapshotReq(BaseModel):
 
 
 class SnapshotRes(BaseModel):
+    id: int
     session_id: UUID
     generation: int
     version: int

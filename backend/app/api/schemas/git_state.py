@@ -61,6 +61,10 @@ class RepositoryState(StateModel):
     # Хеш annotated tag может указывать на объект тега, а не на коммит
     refs: list[Reference]
     commits: list[CommitState]
+    ref_commits: dict[str, ObjectId] = Field(default_factory=dict)
+    history_truncated: bool = False
+    history_boundary: list[ObjectId] = Field(default_factory=list)
+    is_shallow: bool = False
     history_limit: int = Field(gt=0, le=200)
     operations: list[Operation]
 

@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import test_git_course
 import uvicorn
-from app.api.routes.practice import get_practice_state
+from app.api.routes.practice import get_practice_state, get_snapshot_history
 from app.db.session import get_session
 from app.main import app
 from fastapi import Response
@@ -151,6 +151,66 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 server.should_exit = True
                 await task
                 app.dependency_overrides.clear()
+
+    async def test_history_order_pagination_and_conflicting_retries(self):
+        from app.api.routes.cli import cli_connect, cli_send_state
+        from app.api.schemas.cli import CliConnectReq
+        from app.api.schemas.snapshot import SnapshotReq
+        from fastapi import HTTPException
+        from fastapi.security import HTTPAuthorizationCredentials
+
+        await self.prepare_courses()
+        course = await self.request()
+        async with self.factory() as db:
+            connection = await cli_connect(CliConnectReq(course_slug="git"), db)
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer", credentials=connection.key
+        )
+
+        def body(version, path="/repo"):
+            return SnapshotReq(
+                schema_version=1,
+                session_id=course.session_id,
+                generation=connection.generation,
+                version=version,
+                state={"kind": "no_repository", "path": path},
+            )
+
+        ids = []
+        for version in (1, 2, 3):
+            async with self.factory() as db:
+                ack = await cli_send_state(body(version), db, credentials)
+                ids.append(ack.id)
+        async with self.factory() as db:
+            duplicate = await cli_send_state(body(1), db, credentials)
+            self.assertEqual(duplicate.id, ids[0])
+        async with self.factory() as db:
+            with self.assertRaises(HTTPException) as error:
+                await cli_send_state(body(1, "/different"), db, credentials)
+            self.assertEqual(error.exception.status_code, 409)
+        async with self.factory() as db:
+            latest = await get_practice_state(course.session_id, Response(), db)
+            self.assertEqual(latest.snapshot.version, 3)
+            page = await get_snapshot_history(
+                course.session_id,
+                Response(),
+                db,
+                after_id=0,
+                through_id=ids[-1],
+                limit=2,
+            )
+            self.assertEqual([s.version for s in page.snapshots], [1, 2])
+            self.assertTrue(page.has_more)
+            page = await get_snapshot_history(
+                course.session_id,
+                Response(),
+                db,
+                after_id=ids[1],
+                through_id=ids[-1],
+                limit=2,
+            )
+            self.assertEqual([s.version for s in page.snapshots], [3])
+            self.assertFalse(page.has_more)
 
     async def test_failed_commit_does_not_publish(self):
         from app.api.routes.cli import cli_connect, cli_send_state

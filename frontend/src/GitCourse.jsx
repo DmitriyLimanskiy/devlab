@@ -43,7 +43,7 @@ export function GitCourse({ steps, sessionId }) {
         <div className="repository-toolbar"><span><GitBranch size={17} />Репозиторий</span><Status active={connected}>{status}</Status></div>
         <div className="directory-info"><span><FolderOpen size={16} />Рабочая директория</span><code>{snapshot?.state.path ?? 'Выбери папку в CLI'}</code></div>
         {live.data?.status === 'closed' && <p className="snapshot-warning">Сессия закрыта</p>}
-        <GitRepository snapshot={snapshot} />
+        <GitRepository snapshot={snapshot} history={live.data?.history} />
       </div>
     </div>
   </section>

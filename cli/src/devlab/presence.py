@@ -1,4 +1,5 @@
 """Присутствие CLI независимо от изменений Git и повторной доставки снимков"""
+
 import threading
 
 from .api import ApiError
@@ -33,4 +34,4 @@ class PresenceReporter:
 
     def close(self):
         self.stopped.set()
-        self.thread.join(timeout=self.client.timeout + .2)
+        self.thread.join(timeout=self.client.timeout + 0.2)
