@@ -79,7 +79,7 @@ class Observer:
                     if item["path"] != relative
                     and not (internal and item["path"].startswith(internal))
                 ]
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 — ошибка наблюдения не останавливает оболочку
             # Временная ошибка не заменяет последнее успешно прочитанное состояние
             self.error = str(error)
             return

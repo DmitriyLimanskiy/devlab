@@ -1,11 +1,11 @@
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from devlab.practice.git_state import stable_state
@@ -57,6 +57,32 @@ class GitStateTest(unittest.TestCase):
         self.assertIn("MERGE_HEAD", state["operations"])
         self.assertTrue(any(file["conflict"] for file in state["files"]))
         self.assertEqual(len(state["commits"]), 3)
+
+    def test_rename_and_untracked_paths_preserve_porcelain_boundaries(self):
+        self.initialize()
+        original = "old name\nwith newline"
+        renamed = "new name\nwith newline"
+        untracked = "untracked name\nwith newline"
+        (self.folder / original).write_text("content")
+        self.git("add", ".")
+        self.git("commit", "-m", "initial")
+        self.git("mv", original, renamed)
+        (self.folder / untracked).write_text("new")
+
+        files = {item["path"]: item for item in stable_state(self.folder)["files"]}
+        self.assertEqual(set(files), {renamed, untracked})
+        self.assertEqual(
+            files[renamed],
+            {
+                "path": renamed,
+                "original_path": original,
+                "index": "R",
+                "worktree": " ",
+                "conflict": False,
+            },
+        )
+        self.assertEqual(files[untracked]["index"], "?")
+        self.assertNotIn("original_path", files[untracked])
 
     def test_merge_graph_survives_branch_deletion(self):
         self.initialize()
@@ -204,7 +230,10 @@ class GitStateTest(unittest.TestCase):
                 "git show missing-ref",
             ):
                 result = subprocess.run(
-                    ["bash", "-c", command], cwd=self.folder, capture_output=True
+                    ["bash", "-c", command],
+                    cwd=self.folder,
+                    capture_output=True,
+                    check=False,
                 )
                 observer.refresh(result.returncode)
                 observer.refresh()

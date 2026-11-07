@@ -30,7 +30,8 @@ class ApiClient:
     def __init__(self, server_url: str, timeout: float = 3):
         try:
             parsed = urlsplit(server_url)
-            parsed.port
+            # Чтение свойства проверяет корректность номера порта
+            _ = parsed.port
         except ValueError:
             raise ApiError("Некорректный адрес DEVLAB_SERVER_URL") from None
         if (

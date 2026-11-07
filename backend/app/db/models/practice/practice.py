@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from app.db.base import Base
+from app.db.models.courses.course import Course
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
@@ -18,8 +19,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.models.courses.course import Course
 
 
 class PracticeSession(Base):

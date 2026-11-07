@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 from typing import Annotated
 from uuid import UUID
 
@@ -78,6 +79,19 @@ async def get_practice_state(
     )
 
 
+def _apply_ref_changes(refs, targets, changes):
+    for name, change in changes.items():
+        if change["after"] is None:
+            refs.pop(name, None)
+            targets.pop(name, None)
+        else:
+            refs[name] = change["after"]
+            if change["commit"] is None:
+                targets.pop(name, None)
+            else:
+                targets[name] = change["commit"]
+
+
 @router.get("/practice-sessions/{session_id}/snapshots", response_model=SnapshotHistory)
 async def get_snapshot_history(
     session_id: UUID,
@@ -120,22 +134,18 @@ async def get_snapshot_history(
         if page
         else []
     )
+    commits_by_event = defaultdict(list)
+    for commit in commits:
+        commits_by_event[commit.first_event_id].append(
+            {"id": commit.sha, "parents": commit.parents}
+        )
     refs, targets, repository_id = {}, {}, None
     snapshots = []
     for event in [*events_before, *page]:
         if event.repository_id != repository_id:
             refs, targets = {}, {}
             repository_id = event.repository_id
-        for name, change in event.ref_changes.items():
-            if change["after"] is None:
-                refs.pop(name, None)
-                targets.pop(name, None)
-            else:
-                refs[name] = change["after"]
-                if change["commit"] is None:
-                    targets.pop(name, None)
-                else:
-                    targets[name] = change["commit"]
+        _apply_ref_changes(refs, targets, event.ref_changes)
         if event.id <= after_id:
             continue
         state = dict(event.context)
@@ -145,11 +155,7 @@ async def get_snapshot_history(
                 ref_commits=dict(targets),
                 files=[],
                 operations=[],
-                commits=[
-                    {"id": commit.sha, "parents": commit.parents}
-                    for commit in commits
-                    if commit.first_event_id == event.id
-                ],
+                commits=commits_by_event[event.id],
             )
         snapshots.append(
             StoredSnapshot(

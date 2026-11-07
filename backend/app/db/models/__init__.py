@@ -9,9 +9,9 @@ from app.db.models.practice.repository import (
 __all__ = [
     "Course",
     "CourseStep",
+    "GraphEvent",
     "PracticeSession",
     "PracticeSnapshot",
-    "GraphEvent",
     "RepositoryCommit",
     "SnapshotReceipt",
 ]

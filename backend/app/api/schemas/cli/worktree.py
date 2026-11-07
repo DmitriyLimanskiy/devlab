@@ -1,13 +1,12 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.api.schemas.practice.git_state import (
     FileState,
     NoRepositoryState,
     UnavailableState,
 )
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RepositoryFiles(BaseModel):

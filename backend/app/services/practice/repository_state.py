@@ -22,6 +22,23 @@ def refs_by_name(state):
     return dict(ref.rsplit(" ", 1) for ref in state.get("refs", []))
 
 
+def _ref_changes(old, state):
+    old_refs = refs_by_name(old)
+    new_refs = refs_by_name(state)
+    old_targets = old.get("ref_commits", {})
+    new_targets = state.get("ref_commits", {})
+    return {
+        name: {
+            "before": old_refs.get(name),
+            "after": new_refs.get(name),
+            "commit": new_targets.get(name),
+        }
+        for name in sorted(old_refs.keys() | new_refs.keys())
+        if old_refs.get(name) != new_refs.get(name)
+        or old_targets.get(name) != new_targets.get(name)
+    }
+
+
 async def store_state(db, snapshot):
     state = snapshot.state.model_dump(mode="json")
     digest = state_digest(snapshot.schema_version, state)
@@ -53,20 +70,7 @@ async def store_state(db, snapshot):
         old.get("path") == state["path"] and old.get("kind") == state["kind"]
     )
     repository_id = current.repository_id if current and same_repository else uuid4()
-    old_refs = refs_by_name(old) if same_repository else {}
-    new_refs = refs_by_name(state)
-    old_targets = old.get("ref_commits", {}) if same_repository else {}
-    new_targets = state.get("ref_commits", {})
-    changes = {
-        name: {
-            "before": old_refs.get(name),
-            "after": new_refs.get(name),
-            "commit": new_targets.get(name),
-        }
-        for name in sorted(old_refs.keys() | new_refs.keys())
-        if old_refs.get(name) != new_refs.get(name)
-        or old_targets.get(name) != new_targets.get(name)
-    }
+    changes = _ref_changes(old if same_repository else {}, state)
     commits = state.get("commits", [])
     known = (
         {
@@ -165,12 +169,12 @@ async def restore_current(db, snapshot):
             ).all()
         }
         state["commits"] = [{"id": sha, "parents": commits[sha]} for sha in ids]
-    return dict(
-        id=snapshot.id,
-        session_id=snapshot.session_id,
-        schema_version=snapshot.schema_version,
-        generation=snapshot.generation,
-        version=snapshot.version,
-        state=state,
-        received_at=snapshot.received_at,
-    )
+    return {
+        "id": snapshot.id,
+        "session_id": snapshot.session_id,
+        "schema_version": snapshot.schema_version,
+        "generation": snapshot.generation,
+        "version": snapshot.version,
+        "state": state,
+        "received_at": snapshot.received_at,
+    }

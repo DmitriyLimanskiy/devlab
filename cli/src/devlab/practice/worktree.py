@@ -85,6 +85,33 @@ class WorktreeSender:
             # Атомарная замена или временная ошибка файла не стирает последние данные
             return
 
+    def _send_state(self, socket, payload):
+        socket.send(
+            json.dumps(
+                {
+                    "session_id": self.connection.session_id,
+                    "generation": self.connection.generation,
+                    "version": payload[0],
+                    "state": payload[1],
+                },
+                ensure_ascii=True,
+            )
+        )
+        ack = json.loads(socket.recv(timeout=self.client.timeout))
+        if not isinstance(ack, dict):
+            # Любой неверный формат подтверждения остаётся ошибкой значения
+            raise ValueError("Нет подтверждения оперативного состояния")  # noqa: TRY004
+        if ack.get("type") == "error":
+            self.halted = ack.get("status") in {401, 409, 422}
+            raise ValueError("Оперативное состояние отклонено")
+        if (
+            ack.get("type") != "ack"
+            or ack.get("session_id") != self.connection.session_id
+            or ack.get("generation") != self.connection.generation
+            or ack.get("version") != payload[0]
+        ):
+            raise ValueError("Нет подтверждения оперативного состояния")
+
     def run(self):
         socket = None
         delay = self.retry_delay
@@ -127,30 +154,7 @@ class WorktreeSender:
                                 proxy=None,
                                 max_size=2_000_000,
                             )
-                        socket.send(
-                            json.dumps(
-                                {
-                                    "session_id": self.connection.session_id,
-                                    "generation": self.connection.generation,
-                                    "version": payload[0],
-                                    "state": payload[1],
-                                },
-                                ensure_ascii=True,
-                            )
-                        )
-                        ack = json.loads(socket.recv(timeout=self.client.timeout))
-                        if not isinstance(ack, dict):
-                            raise ValueError("Нет подтверждения оперативного состояния")
-                        if ack.get("type") == "error":
-                            self.halted = ack.get("status") in {401, 409, 422}
-                            raise ValueError("Оперативное состояние отклонено")
-                        if (
-                            ack.get("type") != "ack"
-                            or ack.get("session_id") != self.connection.session_id
-                            or ack.get("generation") != self.connection.generation
-                            or ack.get("version") != payload[0]
-                        ):
-                            raise ValueError("Нет подтверждения оперативного состояния")
+                        self._send_state(socket, payload)
                     except (
                         OSError,
                         TimeoutError,

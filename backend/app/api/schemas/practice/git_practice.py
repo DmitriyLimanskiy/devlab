@@ -2,9 +2,8 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
 from app.api.schemas.cli.snapshot import SnapshotReq
+from pydantic import BaseModel, ConfigDict
 
 
 class StoredSnapshot(SnapshotReq):

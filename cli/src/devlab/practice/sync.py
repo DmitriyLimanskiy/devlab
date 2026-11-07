@@ -113,7 +113,9 @@ class SnapshotSender:
                         self.halted = True
                         continue
                     self.condition.wait_for(
-                        lambda: self.closed or self.pending is not payload,
+                        lambda payload=payload: (
+                            self.closed or self.pending is not payload
+                        ),
                         timeout=delay,
                     )
                 delay = min(delay * 2, self.max_delay)

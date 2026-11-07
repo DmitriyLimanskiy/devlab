@@ -2,6 +2,8 @@ import os
 import subprocess
 from pathlib import Path
 
+HISTORY_LIMIT = 200
+
 
 class UnstableRepository(Exception):
     pass
@@ -12,8 +14,8 @@ def git(folder, *args):
     result = subprocess.run(
         ["git", "-C", str(folder), *args],
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        check=False,
         timeout=5,
     )
     if result.returncode:
@@ -23,6 +25,27 @@ def git(folder, *args):
 
 def _text(data):
     return data.decode("utf-8", errors="surrogateescape")
+
+
+def _read_files(data):
+    entries = data.split(b"\0")
+    files = []
+    index = 0
+    while index < len(entries) and entries[index]:
+        entry = entries[index]
+        status = entry[:2].decode("ascii")
+        item = {
+            "path": _text(entry[3:]),
+            "index": status[0],
+            "worktree": status[1],
+            "conflict": status in {"DD", "AU", "UD", "UA", "DU", "AA", "UU"},
+        }
+        if "R" in status or "C" in status:
+            index += 1
+            item["original_path"] = _text(entries[index])
+        files.append(item)
+        index += 1
+    return files
 
 
 def read_state(folder):
@@ -47,25 +70,9 @@ def read_state(folder):
     except RuntimeError:
         if branch is None:
             raise
-    entries = git(
-        root, "status", "--porcelain=v1", "-z", "--untracked-files=all"
-    ).split(b"\0")
-    files = []
-    index = 0
-    while index < len(entries) and entries[index]:
-        entry = entries[index]
-        status = entry[:2].decode("ascii")
-        item = {
-            "path": _text(entry[3:]),
-            "index": status[0],
-            "worktree": status[1],
-            "conflict": status in {"DD", "AU", "UD", "UA", "DU", "AA", "UU"},
-        }
-        if "R" in status or "C" in status:
-            index += 1
-            item["original_path"] = _text(entries[index])
-        files.append(item)
-        index += 1
+    files = _read_files(
+        git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+    )
     refs = _text(
         git(
             root,
@@ -92,10 +99,16 @@ def read_state(folder):
     if roots:
         # Дополнительный коммит отличает точное попадание в лимит от обрезки
         lines = git(
-            root, "log", "--topo-order", "-201", "--format=%H %P", *roots, "--"
+            root,
+            "log",
+            "--topo-order",
+            f"-{HISTORY_LIMIT + 1}",
+            "--format=%H %P",
+            *roots,
+            "--",
         ).splitlines()
-        history_truncated = len(lines) > 200
-        for line in lines[:200]:
+        history_truncated = len(lines) > HISTORY_LIMIT
+        for line in lines[:HISTORY_LIMIT]:
             parts = line.decode("ascii").split()
             commits.append({"id": parts[0], "parents": parts[1:]})
     known = {commit["id"] for commit in commits}
@@ -136,7 +149,7 @@ def read_state(folder):
         "history_truncated": history_truncated,
         "history_boundary": history_boundary,
         "is_shallow": is_shallow,
-        "history_limit": 200,
+        "history_limit": HISTORY_LIMIT,
         "operations": operations,
     }
 

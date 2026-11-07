@@ -43,6 +43,7 @@ export function commitCount(count) {
   return `${count} ${lastTwo >= 11 && lastTwo <= 14 ? 'коммитов' : last === 1 ? 'коммит' : last >= 2 && last <= 4 ? 'коммита' : 'коммитов'}`
 }
 
+const graphSpacing = { left: 90, top: 70, column: 170, lane: 120 }
 const branchPalette = ['var(--branch-violet)', 'var(--branch-orange)', 'var(--branch-green)', 'var(--branch-pink)']
 function isAncestor(byId, ancestor, descendant) {
   const pending = [descendant], seen = new Set()
@@ -134,7 +135,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
   const positions = new Map()
   const nodes = commits.map(commit => {
     const lane = lanes.get(commit.id)
-    const position = { x: 90 + depth(commit.id) * 170, y: 70 + lane * 120 }
+    const position = { x: graphSpacing.left + depth(commit.id) * graphSpacing.column, y: graphSpacing.top + lane * graphSpacing.lane }
     positions.set(commit.id, position)
     return { ...commit, ...position, lane, color: laneColors[lane], seenStep: previous?.nodes.find(n => n.id === commit.id)?.seenStep ?? step }
   })
@@ -142,7 +143,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
   const visibleLanes = [...new Set([...nodes.map(n => n.lane), ...branchFlows.map(flow => laneNames.indexOf(flow.name))])].filter(lane => lane >= 0).sort((a, b) => a - b)
   nodes.forEach(node => {
     node.lane = visibleLanes.indexOf(node.lane)
-    node.y = 70 + node.lane * 120
+    node.y = graphSpacing.top + node.lane * graphSpacing.lane
     positions.set(node.id, { x: node.x, y: node.y })
   })
   const renderedLanes = visibleLanes.map(i => ({ name: laneNames[i], color: laneColors[i] }))
@@ -153,7 +154,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
       ? [{ id: tip.id, name: lane.name, color: lane.color }] : []
   })
   nodes.sort((a, b) => a.x - b.x || a.y - b.y)
-  return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, renderedLanes.length * 120 + 20, branchFlows.length ? 260 : 0), step, lanes: renderedLanes, historicalLabels, branchFlows, branchTips: Object.fromEntries(branches.map(b => [b.name, b.id])) }
+  return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, renderedLanes.length * graphSpacing.lane + 20, branchFlows.length ? 260 : 0), step, lanes: renderedLanes, historicalLabels, branchFlows, branchTips: Object.fromEntries(branches.map(b => [b.name, b.id])) }
 }
 
 export function graphRefs(state) {
@@ -211,7 +212,7 @@ function displayGraph(graph, state) {
     const original = occurrence(flow.to, lane, flow.step)
     const from = occurrence(flow.from, lane, flow.step)
     if (!original || lane < 0) continue
-    const copy = { ...original, key: `copy:${flow.key}`, lane, y: 70 + lane * 120,
+    const copy = { ...original, key: `copy:${flow.key}`, lane, y: graphSpacing.top + lane * graphSpacing.lane,
       seenStep: flow.step, color: flow.targetColor, repeated: true, refBranch: flow.name, refNames: [] }
     nodes.push(copy)
     edges.push({ source: original.key, target: copy.key, color: original.color,
@@ -236,10 +237,10 @@ function displayGraph(graph, state) {
     for (const edge of edges.filter(edge => edge.target === node.key && edge.source)) {
       const parent = byKey.get(edge.source)
       position(parent, visiting)
-      node.x = Math.max(node.x, parent.x + 170)
+      node.x = Math.max(node.x, parent.x + graphSpacing.column)
     }
     const slots = occupied.get(node.lane) ?? new Set()
-    while (slots.has(node.x)) node.x += 170
+    while (slots.has(node.x)) node.x += graphSpacing.column
     slots.add(node.x)
     occupied.set(node.lane, slots)
     visiting.delete(node.key)

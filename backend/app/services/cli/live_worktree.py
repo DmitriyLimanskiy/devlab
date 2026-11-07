@@ -49,12 +49,12 @@ class LiveWorktree:
             if request.version == saved["version"] and state == saved["state"]:
                 return saved
             raise HTTPException(409, "Версия оперативного состояния устарела")
-        saved = dict(
-            session_id=str(request.session_id),
-            generation=request.generation,
-            version=request.version,
-            state=state,
-        )
+        saved = {
+            "session_id": str(request.session_id),
+            "generation": request.generation,
+            "version": request.version,
+            "state": state,
+        }
         self.states[request.session_id] = saved
         self.events.publish(request.session_id, saved)
         return saved
@@ -63,9 +63,12 @@ class LiveWorktree:
         generation = self.connections.get(session_id, (0, None))[0]
         return self.states.get(
             session_id,
-            dict(
-                session_id=str(session_id), generation=generation, version=0, state=None
-            ),
+            {
+                "session_id": str(session_id),
+                "generation": generation,
+                "version": 0,
+                "state": None,
+            },
         )
 
 

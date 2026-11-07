@@ -1,9 +1,8 @@
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.api.schemas.practice.git_state import GitState
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SnapshotReq(BaseModel):
