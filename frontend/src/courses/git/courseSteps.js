@@ -1,3 +1,4 @@
+// Проверить содержимое шагов курса и упорядочить их по позиции
 export function parseCourseSteps(data) {
   const steps = data?.steps
   if (!Array.isArray(steps) || steps.some(step =>

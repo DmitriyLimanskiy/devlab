@@ -42,6 +42,7 @@ class FileState(StateModel):
 
     @model_validator(mode="after")
     def check_status(self):
+        """Проверить согласованность конфликта и исходного пути со статусом Git"""
         pair = self.index + self.worktree
         if self.conflict != (pair in {"DD", "AU", "UD", "UA", "DU", "AA", "UU"}):
             raise ValueError("conflict должен соответствовать статусу файла")
@@ -70,6 +71,7 @@ class RepositoryState(StateModel):
 
     @model_validator(mode="after")
     def check_head_and_history(self):
+        """Проверить состояние HEAD и соблюдение лимита истории"""
         if self.head_kind == "unborn" and (
             self.head is not None or self.branch is None
         ):

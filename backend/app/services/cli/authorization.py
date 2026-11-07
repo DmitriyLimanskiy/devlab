@@ -11,6 +11,7 @@ from sqlalchemy import select
 class CliAuthorization:
     @staticmethod
     async def authorized_session(db, session_id, generation, credentials):
+        """Проверить ключ, статус и поколение с блокировкой записи сессии"""
         if credentials is None:
             raise HTTPException(
                 status_code=401,
@@ -52,6 +53,7 @@ class CliAuthorization:
 
     @staticmethod
     async def authorize_worktree(request, credentials):
+        """Проверить допуск оперативного канала и восстановить его из БД при необходимости"""
         if not live_worktree.authorize(
             request.session_id, request.generation, credentials
         ):

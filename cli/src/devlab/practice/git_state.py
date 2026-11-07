@@ -10,6 +10,7 @@ class UnstableRepository(Exception):
 
 
 def git(folder, *args):
+    """Выполнить Git с аргументами и вернуть вывод либо сообщить об ошибке"""
     env = dict(os.environ, GIT_OPTIONAL_LOCKS="0", LC_ALL="C")
     result = subprocess.run(
         ["git", "-C", str(folder), *args],
@@ -24,10 +25,12 @@ def git(folder, *args):
 
 
 def _text(data):
+    """Декодировать вывод Git с сохранением нестандартных байтов в путях"""
     return data.decode("utf-8", errors="surrogateescape")
 
 
 def _read_files(data):
+    """Разобрать NUL-разделённые статусы Git с учётом переименований"""
     entries = data.split(b"\0")
     files = []
     index = 0
@@ -49,6 +52,7 @@ def _read_files(data):
 
 
 def read_state(folder):
+    """Прочитать HEAD, refs, граф коммитов и статусы файлов локального репозитория"""
     folder = Path(folder)
     if not folder.is_dir():
         return {"kind": "unavailable", "path": str(folder)}
@@ -155,6 +159,7 @@ def read_state(folder):
 
 
 def stable_state(folder):
+    """Принять снимок только при совпадении двух последовательных чтений Git"""
     first = read_state(folder)
     second = read_state(folder)
     if first != second:

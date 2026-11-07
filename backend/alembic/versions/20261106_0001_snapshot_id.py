@@ -8,6 +8,7 @@ depends_on = None
 
 
 def upgrade():
+    """Назначить отдельный числовой первичный ключ снимкам"""
     op.add_column(
         "practice_snapshots",
         sa.Column("id", sa.Integer(), sa.Identity(), nullable=False),
@@ -17,6 +18,7 @@ def upgrade():
 
 
 def downgrade():
+    """Восстановить первичный ключ снимков по сессии"""
     # Несколько снимков одной сессии не позволят восстановить старый ключ
     # PostgreSQL откатит миграцию без удаления истории
     op.drop_constraint("pk_practice_snapshots", "practice_snapshots", type_="primary")

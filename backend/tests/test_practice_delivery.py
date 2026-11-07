@@ -23,10 +23,12 @@ from websockets.asyncio.client import connect
 
 class PracticeDeliveryTest(test_git_course.GitCourseTest):
     async def test_snapshot_http_websocket_duplicates_and_reconnect(self):
+        """Проверить чтение снимков, события WebSocket, повторы и переподключение"""
         await self.prepare_courses()
         course = await self.request()
 
         async def dependency():
+            """Предоставить приложению сессию из изолированной тестовой БД"""
             async with self.factory() as db:
                 yield db
 
@@ -48,7 +50,10 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 self.assertTrue(server.started)
 
                 async def request(path, body=None, key=None, method=None):
+                    """Выполнить тестовый HTTP-запрос к backend"""
+
                     def send():
+                        """Передать тестовый запрос или пакет и записать результат отправки"""
                         headers = {"Content-Type": "application/json"}
                         if key:
                             headers["Authorization"] = "Bearer " + key
@@ -134,6 +139,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     repo = Path(directory)
 
                     def git(*args):
+                        """Выполнить Git во временном тестовом репозитории"""
                         return subprocess.run(
                             ["git", "-C", directory, *args],
                             check=True,
@@ -177,6 +183,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 app.dependency_overrides.clear()
 
     async def test_history_order_pagination_and_conflicting_retries(self):
+        """Проверить порядок истории, границы страниц и конфликтующие повторы"""
         from app.api.routes.cli.cli import cli_connect, cli_send_state
         from app.api.schemas.cli.cli import CliConnectReq
         from app.api.schemas.cli.snapshot import SnapshotReq
@@ -192,6 +199,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         )
 
         def body(version, path="/repo"):
+            """Сформировать тело тестового запроса со снимком"""
             return SnapshotReq(
                 schema_version=1,
                 session_id=course.session_id,
@@ -239,6 +247,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
             self.assertFalse(page.has_more)
 
     async def test_failed_commit_does_not_publish(self):
+        """Проверить отсутствие события при неудачном commit в БД"""
         from app.api.routes.cli.cli import cli_connect, cli_send_state
         from app.api.schemas.cli.cli import CliConnectReq
         from app.api.schemas.cli.snapshot import SnapshotReq
@@ -278,6 +287,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
             self.assertIsNone(result.snapshot)
 
     async def test_presence_auth_and_no_snapshot_versions(self):
+        """Проверить авторизацию присутствия без увеличения версии снимка"""
         from app.api.routes.cli.cli import cli_connect, cli_disconnect, cli_heartbeat
         from app.api.schemas.cli.cli import CliConnectReq, CliPresenceReq
         from app.services.cli.cli_presence import presence
@@ -319,6 +329,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
             presence.remove(course.session_id)
 
     async def test_missing_session_state(self):
+        """Проверить ответ при запросе состояния неизвестной сессии"""
         from uuid import uuid4
 
         from fastapi import HTTPException

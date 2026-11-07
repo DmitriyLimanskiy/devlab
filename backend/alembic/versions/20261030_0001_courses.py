@@ -9,6 +9,7 @@ depends_on = None
 
 
 def timestamps():
+    """Создать общие столбцы времени создания и обновления записей"""
     return [
         sa.Column(
             "created_at",
@@ -26,6 +27,7 @@ def timestamps():
 
 
 def upgrade():
+    """Создать таблицы курсов и шагов с ограничениями порядка"""
     op.create_table(
         "courses",
         sa.Column("id", sa.Integer(), sa.Identity(), nullable=False),
@@ -85,5 +87,6 @@ def upgrade():
 
 
 def downgrade():
+    """Удалить таблицы шагов и курсов"""
     op.drop_table("course_steps")
     op.drop_table("courses")

@@ -15,6 +15,7 @@ from sqlalchemy.pool import NullPool
 @unittest.skipUnless(os.environ.get("RUN_DB_TESTS") == "1", "Нужен PostgreSQL")
 class GraphMigrationTest(unittest.IsolatedAsyncioTestCase):
     async def test_backfill_and_fresh_delivery(self):
+        """Проверить перенос архива миграциями и продолжение нумерации подтверждений"""
         schema = "test_graph_migration_" + uuid4().hex
         engine = create_async_engine(
             os.environ.get("TEST_DATABASE_URL") or database_url(), poolclass=NullPool
@@ -25,6 +26,7 @@ class GraphMigrationTest(unittest.IsolatedAsyncioTestCase):
                 await connection.execute(text(f'SET LOCAL search_path TO "{schema}"'))
 
                 def migrate(sync):
+                    """Применить миграции и проверить перенос данных в тестовой схеме"""
                     config = Config(
                         str(Path(__file__).resolve().parents[1] / "alembic.ini")
                     )

@@ -7,6 +7,7 @@ depends_on = None
 
 
 def upgrade():
+    """Добавить уникальность поколения и версии доставки в пределах сессии"""
     op.create_unique_constraint(
         "uq_practice_snapshots_delivery",
         "practice_snapshots",
@@ -15,6 +16,7 @@ def upgrade():
 
 
 def downgrade():
+    """Удалить ограничение уникальности доставки снимков"""
     op.drop_constraint(
         "uq_practice_snapshots_delivery", "practice_snapshots", type_="unique"
     )

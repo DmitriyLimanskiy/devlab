@@ -2,6 +2,7 @@ from devlab.cli.api import ApiError
 
 
 def choose_connection(client):
+    """Предложить курс и подключить CLI к его активной браузерной сессии"""
     while True:
         try:
             courses = client.catalog()

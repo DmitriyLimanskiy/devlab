@@ -7,6 +7,7 @@ from fastapi import HTTPException
 
 class WorktreeEvents(PracticeEvents):
     def publish(self, session_id, state):
+        """Передать подписчикам последнее состояние файлов вместо устаревшего пакета"""
         # Для оперативных данных важен последний пакет, а не все переходы
         for queue in self.listeners.get(session_id, ()):
             if queue.full():
@@ -16,11 +17,13 @@ class WorktreeEvents(PracticeEvents):
 
 class LiveWorktree:
     def __init__(self):
+        """Подготовить допуски CLI, оперативные состояния и шину файлов"""
         self.connections = {}
         self.states = {}
         self.events = WorktreeEvents()
 
     def bind(self, session_id, generation, key_hash):
+        """Привязать ключ и поколение CLI, очищая состояние прошлого подключения"""
         current = self.connections.get(session_id)
         if current and current[0] > generation:
             raise HTTPException(409, "Поколение подключения больше не действует")
@@ -30,6 +33,7 @@ class LiveWorktree:
             self.events.publish(session_id, self.read(session_id))
 
     def authorize(self, session_id, generation, credentials):
+        """Проверить ключ и поколение по допуску оперативного канала"""
         if credentials is None:
             raise HTTPException(401, "Требуется ключ подключения")
         current = self.connections.get(session_id)
@@ -43,6 +47,7 @@ class LiveWorktree:
         return True
 
     def publish(self, request):
+        """Принять новую версию файлов или подтвердить идентичный повтор"""
         saved = self.states.get(request.session_id)
         state = request.state.model_dump(mode="json")
         if saved and request.version <= saved["version"]:
@@ -60,6 +65,7 @@ class LiveWorktree:
         return saved
 
     def read(self, session_id):
+        """Вернуть последнее состояние файлов либо пустой пакет текущего поколения"""
         generation = self.connections.get(session_id, (0, None))[0]
         return self.states.get(
             session_id,

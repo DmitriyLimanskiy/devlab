@@ -14,6 +14,7 @@ router = APIRouter(prefix="/api/v1", tags=["catalog"])
 async def catalog(
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[CatalogRes]:
+    """Вернуть упорядоченный каталог доступных направлений"""
     courses = await db.scalars(select(Course).order_by(Course.position, Course.id))
     return [
         CatalogRes(

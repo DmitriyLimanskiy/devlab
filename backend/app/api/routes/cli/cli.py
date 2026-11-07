@@ -32,6 +32,7 @@ bearer = HTTPBearer(auto_error=False)
 async def cli_connect(
     connect: CliConnectReq, db: Annotated[AsyncSession, Depends(get_session)]
 ):
+    """Выдать новое поколение подключения CLI и ключ активной сессии"""
     practice_session = await db.scalar(
         select(PracticeSession)
         .join(Course, PracticeSession.course_id == Course.id)
@@ -74,6 +75,7 @@ async def cli_send_state(
         Depends(bearer),
     ],
 ):
+    """Сохранить снимок CLI и подтвердить его после commit"""
     await CliAuthorization.authorized_session(
         db, snapshot.session_id, snapshot.generation, credentials
     )
@@ -96,6 +98,7 @@ async def cli_heartbeat(
     db: Annotated[AsyncSession, Depends(get_session)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ):
+    """Продлить присутствие авторизованного CLI и вернуть подтверждение"""
     await CliAuthorization.authorized_session(
         db, request.session_id, request.generation, credentials
     )
@@ -113,6 +116,7 @@ async def cli_disconnect(
     db: Annotated[AsyncSession, Depends(get_session)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ):
+    """Снять присутствие CLI текущего поколения и уведомить браузер"""
     await CliAuthorization.authorized_session(
         db, request.session_id, request.generation, credentials
     )

@@ -6,6 +6,7 @@ from fastapi.routing import APIRoute, APIWebSocketRoute
 
 class RoutesTest(unittest.TestCase):
     def test_http_contract_and_unique_registration(self):
+        """Проверить состав HTTP-маршрутов и отсутствие повторной регистрации"""
         routes = [
             (method, route.path)
             for route in app.routes
@@ -31,6 +32,7 @@ class RoutesTest(unittest.TestCase):
         )
 
     def test_websocket_contract_and_unique_registration(self):
+        """Проверить состав WebSocket-маршрутов и отсутствие повторной регистрации"""
         routes = [
             route.path for route in app.routes if isinstance(route, APIWebSocketRoute)
         ]

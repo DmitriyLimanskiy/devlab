@@ -23,6 +23,7 @@ from sqlalchemy import select, func
 
 class NormalizedRepositoryTest(test_git_course.GitCourseTest):
     async def test_switch_files_commit_refs_and_retries(self):
+        """Проверить разделение текущего состояния, истории графа и повторных снимков"""
         import sys
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
@@ -39,6 +40,7 @@ class NormalizedRepositoryTest(test_git_course.GitCourseTest):
         bodies = []
 
         async def publish(folder):
+            """Отправить тестовое состояние с очередной версией"""
             nonlocal version
             version += 1
             body = SnapshotReq(
@@ -53,6 +55,7 @@ class NormalizedRepositoryTest(test_git_course.GitCourseTest):
                 return await cli_send_state(body, db, credentials)
 
         async def counts():
+            """Посчитать записи текущего состояния, коммитов, событий и подтверждений"""
             async with self.factory() as db:
                 return tuple(
                     [
@@ -70,6 +73,7 @@ class NormalizedRepositoryTest(test_git_course.GitCourseTest):
             folder = Path(directory)
 
             def git(*args):
+                """Выполнить Git во временном тестовом репозитории"""
                 return subprocess.run(
                     ["git", "-C", directory, *args], check=True, capture_output=True
                 )

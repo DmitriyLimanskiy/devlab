@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { parseWorktree, newerWorktree } from './worktreeState.js'
+// Собрать тестовый пакет файлов заданного поколения и версии
 const data = (generation, version, files = []) => ({ session_id: 's', generation, version, state: { kind: 'repository', path: '/repo', files } })
 test('оперативные файлы и индекс проверяются независимо от графа', () => {
   const state = data(1, 2, [{ path: 'file', index: 'A', worktree: 'M', conflict: false }])

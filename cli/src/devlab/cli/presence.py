@@ -5,14 +5,17 @@ from devlab.cli.api import ApiError
 
 class PresenceReporter:
     def __init__(self, client, connection, interval=10):
+        """Подготовить фоновое подтверждение присутствия CLI"""
         self.client, self.connection, self.interval = client, connection, interval
         self.stopped = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
 
     def start(self):
+        """Запустить поток подтверждения присутствия после создания PTY"""
         self.thread.start()
 
     def run(self):
+        """Посылать heartbeat до остановки и завершить присутствие при штатном выходе"""
         permanent_error = False
         try:
             while not self.stopped.is_set():
@@ -31,5 +34,6 @@ class PresenceReporter:
                     pass
 
     def close(self):
+        """Остановить heartbeat с ограниченным ожиданием потока"""
         self.stopped.set()
         self.thread.join(timeout=self.client.timeout + 0.2)

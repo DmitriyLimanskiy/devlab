@@ -11,6 +11,7 @@ depends_on = None
 
 
 def upgrade():
+    """Проверить полноту переноса и удалить старый архив снимков"""
     bind = op.get_bind()
     rows = (
         bind.execute(sa.text("SELECT * FROM practice_snapshots ORDER BY id"))
@@ -57,6 +58,7 @@ def upgrade():
 
 
 def downgrade():
+    """Запретить восстановление удалённого архива без исходных данных"""
     raise RuntimeError(
         "Полные старые снимки удалены после нормализации и не восстанавливаются автоматически"
     )

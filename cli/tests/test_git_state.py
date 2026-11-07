@@ -14,29 +14,35 @@ from devlab.practice.observer import Observer
 
 class GitStateTest(unittest.TestCase):
     def setUp(self):
+        """Подготовить временную папку и данные для независимого теста"""
         self.temp = tempfile.TemporaryDirectory()
         self.folder = Path(self.temp.name) / "project"
         self.folder.mkdir()
 
     def tearDown(self):
+        """Удалить временные файлы завершённого теста"""
         self.temp.cleanup()
 
     def git(self, *args, check=True):
+        """Выполнить Git во временном тестовом репозитории"""
         return subprocess.run(
             ["git", "-C", str(self.folder), *args], check=check, capture_output=True
         )
 
     def initialize(self):
+        """Создать временный Git-репозиторий с тестовой подписью автора"""
         self.git("init", "-b", "main")
         self.git("config", "user.name", "Test")
         self.git("config", "user.email", "test@example.invalid")
 
     def commit(self, content):
+        """Создать тестовый коммит в локальном репозитории"""
         (self.folder / "file").write_text(content)
         self.git("add", ".")
         self.git("commit", "-m", "test")
 
     def test_empty_index_detached_conflict(self):
+        """Проверить пустой репозиторий, индекс, detached HEAD и конфликт слияния"""
         self.assertEqual(stable_state(self.folder)["kind"], "no_repository")
         self.initialize()
         self.assertEqual(stable_state(self.folder)["head_kind"], "unborn")
@@ -59,6 +65,7 @@ class GitStateTest(unittest.TestCase):
         self.assertEqual(len(state["commits"]), 3)
 
     def test_rename_and_untracked_paths_preserve_porcelain_boundaries(self):
+        """Проверить переименование и неотслеживаемые пути с пробелами и переносами строк"""
         self.initialize()
         original = "old name\nwith newline"
         renamed = "new name\nwith newline"
@@ -85,6 +92,7 @@ class GitStateTest(unittest.TestCase):
         self.assertNotIn("original_path", files[untracked])
 
     def test_merge_graph_survives_branch_deletion(self):
+        """Проверить сохранение связей слияния после удаления ветки"""
         self.initialize()
         self.commit("base")
         base = stable_state(self.folder)["head"]
@@ -109,6 +117,7 @@ class GitStateTest(unittest.TestCase):
                 self.assertLess(order[commit["id"]], order[parent])
 
     def test_unborn_head_preserves_other_branches_and_tag_targets(self):
+        """Проверить чтение других веток и целей тегов при unborn HEAD"""
         self.initialize()
         self.commit("base")
         head = stable_state(self.folder)["head"]
@@ -126,6 +135,7 @@ class GitStateTest(unittest.TestCase):
         self.assertNotIn("refs/tags/v1 " + head, state["refs"])
 
     def test_history_limit_and_boundary(self):
+        """Проверить точный лимит истории и ссылки на родителей вне снимка"""
         self.initialize()
         # commit-tree создаёт настоящую историю без сотен изменений рабочего дерева
         tree = self.git("mktree").stdout.decode().strip()
@@ -146,6 +156,7 @@ class GitStateTest(unittest.TestCase):
         self.assertFalse(state["is_shallow"])
 
     def test_shallow_clone_marks_incomplete_history(self):
+        """Проверить обозначение неполной истории shallow-клона"""
         self.initialize()
         self.commit("first")
         self.commit("second")
@@ -161,6 +172,7 @@ class GitStateTest(unittest.TestCase):
         self.assertEqual(len(state["commits"]), 1)
 
     def test_snapshot_inside_repository_does_not_change_itself(self):
+        """Проверить исключение локального снимка из собственных статусов Git"""
         self.initialize()
         read, write = os.pipe()
         try:
@@ -183,6 +195,7 @@ class GitStateTest(unittest.TestCase):
             os.close(write)
 
     def test_preserve_existing_until_next_change(self):
+        """Проверить сохранение прежнего state.json до изменения репозитория"""
         self.initialize()
         read, write = os.pipe()
         try:
@@ -202,6 +215,7 @@ class GitStateTest(unittest.TestCase):
             os.close(write)
 
     def test_commands_without_git_changes_do_not_enqueue_snapshots(self):
+        """Проверить отсутствие новых версий доставки после неизменяющих команд"""
         from devlab.cli.api import ApiClient, Connection
         from devlab.practice.sync import SnapshotSender
 
@@ -253,6 +267,7 @@ class GitStateTest(unittest.TestCase):
             os.close(write)
 
     def test_file_polling_waits_for_command_before_delivery(self):
+        """Проверить ожидание завершения команды перед доставкой опрошенного состояния"""
         self.initialize()
         self.commit("base")
         read, write = os.pipe()
@@ -280,6 +295,7 @@ class GitStateTest(unittest.TestCase):
             os.close(write)
 
     def test_external_changes_and_deduplication(self):
+        """Проверить обнаружение внешних правок без лишних версий снимка"""
         self.initialize()
         read, write = os.pipe()
         snapshot = Path(self.temp.name) / "state.json"

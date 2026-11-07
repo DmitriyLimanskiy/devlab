@@ -9,6 +9,7 @@ from app.db import models  # Регистрация всех таблиц в met
 
 
 def offline():
+    """Настроить генерацию SQL миграций без подключения к БД"""
     # Offline SQL не требует ни подключения, ни настоящих секретов
     context.configure(
         url="postgresql+psycopg://",
@@ -22,6 +23,7 @@ def offline():
 
 
 def run_migrations(connection):
+    """Выполнить миграции в контексте переданного подключения"""
     context.configure(
         connection=connection, target_metadata=Base.metadata, compare_type=True
     )
@@ -30,6 +32,7 @@ def run_migrations(connection):
 
 
 async def online():
+    """Выполнить миграции через асинхронное подключение к PostgreSQL"""
     engine = create_async_engine(database_url(), poolclass=pool.NullPool)
     try:
         async with engine.connect() as connection:

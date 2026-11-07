@@ -15,11 +15,13 @@ from devlab.practice.git_state import read_state
 
 class SnapshotStateTest(unittest.TestCase):
     def setUp(self):
+        """Подготовить временную папку и данные для независимого теста"""
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.folder = Path(self.temp.name)
 
     def git(self, *args, check=True):
+        """Выполнить Git во временном тестовом репозитории"""
         return subprocess.run(
             [
                 "git",
@@ -36,16 +38,19 @@ class SnapshotStateTest(unittest.TestCase):
         )
 
     def validate(self, state):
+        """Проверить снимок через транспортную модель backend"""
         return SnapshotReq(
             schema_version=1, session_id=uuid4(), generation=1, version=1, state=state
         )
 
     def commit(self, text):
+        """Создать тестовый коммит в локальном репозитории"""
         (self.folder / "file").write_text(text)
         self.git("add", ".")
         self.git("commit", "-m", "test")
 
     def test_no_repository_and_unavailable(self):
+        """Проверить состояния отсутствующего репозитория и недоступной папки"""
         self.assertEqual(
             self.validate(read_state(self.folder)).state.kind, "no_repository"
         )
@@ -54,6 +59,7 @@ class SnapshotStateTest(unittest.TestCase):
         )
 
     def test_real_states_and_json_roundtrip(self):
+        """Проверить валидацию реальных состояний Git и преобразование через JSON"""
         self.git("init", "-b", "main")
         self.assertEqual(
             self.validate(read_state(self.folder)).state.head_kind, "unborn"
@@ -88,6 +94,7 @@ class SnapshotStateTest(unittest.TestCase):
         )
 
     def test_reject_invalid_state(self):
+        """Проверить отклонение некорректных данных снимка"""
         self.git("init", "-b", "main")
         self.commit("base")
         state = read_state(self.folder)

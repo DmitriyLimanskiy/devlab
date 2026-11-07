@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/v1", tags=["git-course"])
 async def git_courses(
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[CatalogRes]:
+    """Получить список Git-курсов без создания практических сессий"""
     courses = await db.scalars(
         select(Course)
         .where(Course.slug.startswith("git-"))
@@ -39,6 +40,7 @@ async def git_course(
     db: Annotated[AsyncSession, Depends(get_session)],
     request: GitCourseReq,
 ) -> GitCourseRes:
+    """Открыть активную сессию выбранного курса и вернуть его шаги"""
     course = await db.scalar(select(Course).where(Course.slug == request.course_slug))
     if course is None:
         raise HTTPException(

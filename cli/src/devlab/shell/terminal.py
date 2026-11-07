@@ -10,6 +10,7 @@ import tty
 
 
 def _write_all(fd: int, data: bytes) -> None:
+    """Передать все байты в дескриптор с учётом неполной записи"""
     while data:
         data = data[os.write(fd, data) :]
 
@@ -17,6 +18,7 @@ def _write_all(fd: int, data: bytes) -> None:
 def run_bash(
     bash: str, rc_path: str, folder, snapshot, write_snapshot=True, sender=None
 ) -> int:
+    """Запустить bash через PTY с наблюдением Git и восстановлением терминала"""
     stdin, stdout = sys.stdin.fileno(), sys.stdout.fileno()
     original = termios.tcgetattr(stdin)
     from devlab.practice.observer import Observer
@@ -66,6 +68,7 @@ def run_bash(
     observer.thread.start()
 
     def resize(_signum=None, _frame=None):
+        """Передать актуальный размер внешнего терминала дочернему PTY"""
         size = fcntl.ioctl(stdin, termios.TIOCGWINSZ, b"\0" * 8)
         fcntl.ioctl(master, termios.TIOCSWINSZ, size)
 

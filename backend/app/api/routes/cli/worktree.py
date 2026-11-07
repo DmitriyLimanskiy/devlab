@@ -23,12 +23,14 @@ async def cli_worktree(
     request: WorktreeReq,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ):
+    """Принять авторизованное оперативное состояние файлов по HTTP"""
     await CliAuthorization.authorize_worktree(request, credentials)
     return live_worktree.publish(request)
 
 
 @ws_router.websocket("/cli-worktree")
 async def receive_cli_worktree(websocket: WebSocket):
+    """Принимать состояния файлов CLI по WebSocket и подтверждать версии"""
     header = websocket.headers.get("authorization", "")
     scheme, _, key = header.partition(" ")
     credentials = (

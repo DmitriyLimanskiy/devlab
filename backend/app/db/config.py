@@ -4,6 +4,7 @@ from sqlalchemy.engine import URL, make_url
 
 
 def database_url():
+    """Собрать адрес PostgreSQL из окружения и проверить драйвер"""
     if value := os.environ.get("DATABASE_URL"):
         url = make_url(value)
         if url.drivername in {"postgres", "postgresql"}:

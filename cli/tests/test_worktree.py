@@ -16,14 +16,17 @@ class Client:
     server_url = "http://127.0.0.1:8080"
 
     def __init__(self):
+        """Подготовить состояние тестового клиента и сценарий сетевых ошибок"""
         self.calls = []
         self.failures = 0
 
     def connect(self, url, **kwargs):
+        """Создать тестовое соединение с управляемыми подтверждениями"""
         owner = self
 
         class Socket:
             def send(self, data):
+                """Передать тестовый запрос или пакет и записать результат отправки"""
                 self.payload = json.loads(data)
                 owner.calls.append((self.payload["version"], self.payload["state"]))
                 if owner.failures:
@@ -31,6 +34,7 @@ class Client:
                     raise OSError("Нет связи")
 
             def recv(self, timeout):
+                """Вернуть подтверждение версии от тестового WebSocket"""
                 return json.dumps(
                     {
                         "type": "ack",
@@ -41,6 +45,7 @@ class Client:
                 )
 
             def close(self):
+                """Закрыть тестовое соединение без дополнительных действий"""
                 pass
 
         return Socket()
@@ -48,6 +53,7 @@ class Client:
 
 class WorktreeSenderTest(unittest.TestCase):
     def wait_for(self, predicate):
+        """Дождаться выполнения условия в пределах тестового таймаута"""
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline:
             if predicate():
@@ -56,6 +62,7 @@ class WorktreeSenderTest(unittest.TestCase):
         self.fail("Нет оперативного состояния")
 
     def test_only_latest_files_are_sent_without_graph(self):
+        """Проверить отправку только последних файлов без графа коммитов"""
         client = Client()
         sender = WorktreeSender(
             client,
@@ -89,6 +96,7 @@ class WorktreeSenderTest(unittest.TestCase):
             sender.close()
 
     def test_retry_and_resend_restore_server_memory_without_new_version(self):
+        """Проверить восстановление памяти backend повтором прежней версии файлов"""
         client = Client()
         client.failures = 1
         sender = WorktreeSender(
@@ -108,6 +116,7 @@ class WorktreeSenderTest(unittest.TestCase):
             sender.close()
 
     def test_polling_ignores_stale_and_partial_state_file(self):
+        """Проверить игнорирование старого и недописанного state.json"""
         client = Client()
         with tempfile.TemporaryDirectory() as directory:
             snapshot = Path(directory) / "state.json"

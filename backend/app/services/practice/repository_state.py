@@ -14,15 +14,18 @@ from sqlalchemy import select
 
 
 def state_digest(schema_version, state):
+    """Вычислить хеш нормализованного снимка для проверки повторной доставки"""
     canonical = json.dumps([schema_version, state], sort_keys=True, ensure_ascii=True)
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 def refs_by_name(state):
+    """Преобразовать список refs в соответствие имён и хешей объектов"""
     return dict(ref.rsplit(" ", 1) for ref in state.get("refs", []))
 
 
 def _ref_changes(old, state):
+    """Выделить изменения указателей refs и целевых коммитов тегов"""
     old_refs = refs_by_name(old)
     new_refs = refs_by_name(state)
     old_targets = old.get("ref_commits", {})
@@ -40,6 +43,7 @@ def _ref_changes(old, state):
 
 
 async def store_state(db, snapshot):
+    """Сохранить текущее состояние, новые коммиты, изменения refs и подтверждение"""
     state = snapshot.state.model_dump(mode="json")
     digest = state_digest(snapshot.schema_version, state)
     if state["kind"] == "repository":
@@ -151,6 +155,7 @@ async def store_state(db, snapshot):
 
 
 async def restore_current(db, snapshot):
+    """Восстановить полный текущий снимок из состояния и таблицы коммитов"""
     if snapshot is None:
         return None
     state = dict(snapshot.state)

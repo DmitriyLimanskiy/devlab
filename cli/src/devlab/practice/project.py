@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 def ensure_state_ignored(folder: Path) -> None:
+    """Добавить правило state.json в .gitignore с сохранением текущего содержимого"""
     path = folder / ".gitignore"
     if path.is_symlink():
         raise OSError(

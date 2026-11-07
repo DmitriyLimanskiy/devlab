@@ -17,6 +17,7 @@ class Client:
     timeout = 0.1
 
     def __init__(self):
+        """Подготовить состояние тестового клиента и сценарий сетевых ошибок"""
         self.calls = []
         self.failures = 0
         self.permanent = False
@@ -24,6 +25,7 @@ class Client:
         self.release = None
 
     def send_snapshot(self, connection, state, version):
+        """Записать отправленный снимок или имитировать сетевую ошибку"""
         self.calls.append((version, state))
         self.entered.set()
         if self.release is not None:
@@ -37,6 +39,7 @@ class Client:
 
 class SyncTest(unittest.TestCase):
     def setUp(self):
+        """Подготовить временную папку и данные для независимого теста"""
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.client = Client()
@@ -53,6 +56,7 @@ class SyncTest(unittest.TestCase):
         )
 
     def wait_for(self, predicate):
+        """Дождаться выполнения условия в пределах тестового таймаута"""
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
             if predicate():
@@ -61,10 +65,12 @@ class SyncTest(unittest.TestCase):
         self.fail("Не дождались результата фонового отправителя")
 
     def start(self):
+        """Запустить тестовый отправитель и зарегистрировать его остановку"""
         self.sender.start()
         self.addCleanup(self.sender.close)
 
     def test_retry_uses_same_version_and_deduplicates(self):
+        """Проверить повтор прежней версии и исключение одинаковых снимков"""
         self.client.failures = 1
         self.sender.publish({"kind": "no_repository", "path": "/tmp/project"})
         self.start()
@@ -75,6 +81,7 @@ class SyncTest(unittest.TestCase):
         self.assertFalse(self.sender.pending_path.exists())
 
     def test_late_ack_does_not_remove_newer_pending(self):
+        """Проверить сохранение новых снимков после запоздалого подтверждения"""
         self.client.release = threading.Event()
         self.sender.publish({"value": 1})
         self.start()
@@ -88,6 +95,7 @@ class SyncTest(unittest.TestCase):
         self.assertEqual([v for v, _ in self.client.calls], [1, 2])
 
     def test_offline_queue_delivers_every_snapshot_in_order(self):
+        """Проверить последовательную доставку всей очереди после восстановления связи"""
         self.client.failures = 100
         self.sender.publish({"value": 1})
         self.sender.publish({"value": 2})
@@ -105,6 +113,7 @@ class SyncTest(unittest.TestCase):
         )
 
     def test_invalidated_connection_stops_retries_but_keeps_state(self):
+        """Проверить остановку повторов с сохранением очереди при отзыве подключения"""
         self.client.permanent = True
         self.sender.publish({"value": 1})
         self.start()
@@ -117,6 +126,7 @@ class SyncTest(unittest.TestCase):
         )
 
     def test_new_generation_preserves_old_disk_queue_without_replaying(self):
+        """Проверить сохранение старой очереди без отправки с новым поколением"""
         self.sender.publish({"value": "old"})
         old_path = self.sender.pending_path
         newer = SnapshotSender(
@@ -132,6 +142,7 @@ class SyncTest(unittest.TestCase):
         self.assertNotIn("key", data)
 
     def test_storage_error_keeps_pending_in_memory(self):
+        """Проверить сохранение очереди в памяти при ошибке диска"""
         with patch.object(Path, "mkdir", side_effect=OSError("disk unavailable")):
             self.sender.publish({"value": 1})
         self.assertIsNotNone(self.sender.pending)
@@ -141,6 +152,7 @@ class SyncTest(unittest.TestCase):
         self.wait_for(lambda: self.sender.pending is None)
 
     def test_close_does_not_wait_for_retry_delay(self):
+        """Проверить завершение отправителя без ожидания длинной задержки повтора"""
         self.client.failures = 100
         self.sender.publish({"value": 1})
         self.start()

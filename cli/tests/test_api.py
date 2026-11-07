@@ -21,6 +21,7 @@ from devlab.cli.connection import choose_connection
 
 class ApiTest(unittest.TestCase):
     def setUp(self):
+        """Запустить локальный HTTP-сервер для проверки CLI"""
         self.records = []
         self.connect_status = 200
         self.bad_ack = False
@@ -29,15 +30,18 @@ class ApiTest(unittest.TestCase):
 
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *args):
+                """Подавить стандартный HTTP-лог тестового сервера"""
                 pass
 
             def respond(self, code, payload):
+                """Отправить JSON-ответ тестового HTTP-сервера"""
                 self.send_response(code)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps(payload).encode())
 
             def do_GET(self):
+                """Обработать GET-запрос тестового клиента"""
                 owner.records.append(("GET", self.path, None, None))
                 self.respond(
                     200,
@@ -49,6 +53,7 @@ class ApiTest(unittest.TestCase):
                 )
 
             def do_POST(self):
+                """Обработать POST-запрос тестового клиента"""
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 owner.records.append(
                     ("POST", self.path, body, self.headers.get("Authorization"))
@@ -89,11 +94,13 @@ class ApiTest(unittest.TestCase):
         )
 
     def tearDown(self):
+        """Остановить тестовый HTTP-сервер и освободить его ресурсы"""
         self.server.shutdown()
         self.server.server_close()
         self.thread.join()
 
     def test_course_selection_and_initial_snapshot(self):
+        """Проверить выбор курса и доставку начального снимка CLI"""
         output = io.StringIO()
         with (
             contextlib.redirect_stdout(output),
@@ -114,6 +121,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(sent[2]["generation"], 2)
 
     def run_cli_flow(self, continuous=False):
+        """Пройти диалог запуска CLI в тестовом PTY"""
         master, slave = pty.openpty()
         with tempfile.TemporaryDirectory() as directory:
             env = dict(
@@ -134,6 +142,7 @@ class ApiTest(unittest.TestCase):
             output = bytearray()
 
             def until(expected):
+                """Дождаться ожидаемого вывода тестового CLI"""
                 deadline = time.monotonic() + 8
                 received = bytearray()
                 while expected not in received and time.monotonic() < deadline:
@@ -166,6 +175,7 @@ class ApiTest(unittest.TestCase):
                     until(b" > ")
 
                     def wait_state(predicate, endpoint="/api/v1/cli-send-snapshot"):
+                        """Дождаться записи ожидаемого состояния локального снимка"""
                         deadline = time.monotonic() + 8
                         while time.monotonic() < deadline:
                             sent = [r[2] for r in self.records if r[1] == endpoint]
@@ -238,18 +248,22 @@ class ApiTest(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "darwin", "Терминальная версия для macOS")
     def test_cli_connects_before_folder_and_keeps_key_out_of_files(self):
+        """Проверить подключение до выбора папки и отсутствие ключа в файлах"""
         self.run_cli_flow()
 
     @unittest.skipUnless(sys.platform == "darwin", "Терминальная версия для macOS")
     def test_initial_delivery_error_keeps_shell_working(self):
+        """Проверить работу оболочки при ошибке начальной доставки"""
         self.bad_ack = True
         self.run_cli_flow()
 
     @unittest.skipUnless(sys.platform == "darwin", "Терминальная версия для macOS")
     def test_external_edits_do_not_enqueue_graph_snapshots(self):
+        """Проверить отсутствие снимков графа при одних внешних правках файлов"""
         self.run_cli_flow(continuous=True)
 
     def test_missing_session_allows_local_mode(self):
+        """Проверить локальную работу при отсутствии браузерной сессии"""
         self.connect_status = 404
         output = io.StringIO()
         with (
@@ -260,6 +274,7 @@ class ApiTest(unittest.TestCase):
         self.assertIn("Откройте выбранный курс", output.getvalue())
 
     def test_invalid_catalog_allows_local_mode(self):
+        """Проверить локальную работу при некорректном каталоге сервера"""
         self.bad_catalog = True
         with (
             contextlib.redirect_stdout(io.StringIO()),
@@ -268,6 +283,7 @@ class ApiTest(unittest.TestCase):
             self.assertIsNone(choose_connection(self.client))
 
     def test_failed_or_mismatched_snapshot_is_not_confirmed(self):
+        """Проверить отклонение неуспешного или неверного подтверждения снимка"""
         connection = self.client.connect("git")
         self.bad_ack = True
         with self.assertRaises(ApiError):
@@ -276,6 +292,7 @@ class ApiTest(unittest.TestCase):
             )
 
     def test_closed_server_allows_local_mode(self):
+        """Проверить локальную работу при недоступном сервере"""
         self.server.shutdown()
         self.server.server_close()
         with (

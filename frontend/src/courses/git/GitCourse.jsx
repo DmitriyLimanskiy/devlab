@@ -5,8 +5,10 @@ import { usePracticeState } from '../../practice/git/usePracticeState'
 import { GitBranch, Terminal, FolderOpen, ChevronDown, ChevronUp, BookOpen } from 'lucide-react'
 import { Status } from '../../shared/ui'
 
+// Убрать завершающие точки из текстовых подписей интерфейса
 const withoutFinalPeriod = text => text.replace(/\.+\s*$/, '')
 
+// Показать текстовые блоки и команды выбранного шага
 function StepContent({ content }) {
   const blocks = content.blocks ?? []
   if (!blocks.length) return <p>Описание шага пока не добавлено</p>
@@ -17,6 +19,7 @@ function StepContent({ content }) {
   })}</div>
 }
 
+// Показать описание шага с управляемым раскрытием длинного текста
 function StepDescription({ step }) {
   const contentRef = useRef(null)
   const [expanded, setExpanded] = useState(false)
@@ -30,6 +33,7 @@ function StepDescription({ step }) {
     return () => observer.disconnect()
   }, [step])
 
+  // Переключить раскрытие описания с ограничением его высоты
   function toggleExpanded() {
     if (!expanded) setExpandedHeight(Math.min(360, Math.max(112, contentRef.current.scrollHeight)))
     setExpanded(value => !value)
@@ -52,6 +56,7 @@ function StepDescription({ step }) {
   </section>
 }
 
+// Собрать шаги курса и живое состояние выбранной практической сессии
 export function GitCourse({ title, steps, sessionId }) {
   const [selectedStepId, setSelectedStepId] = useState(steps[0]?.id ?? null)
   const selectedStep = steps.find(step => step.id === selectedStepId) ?? steps[0]

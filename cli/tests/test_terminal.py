@@ -18,6 +18,7 @@ from pathlib import Path
 @unittest.skipUnless(sys.platform == "darwin", "Первая версия рассчитана на macOS")
 class TerminalTest(unittest.TestCase):
     def setUp(self):
+        """Запустить тестовый CLI в PTY и сохранить настройки терминала"""
         self.project = tempfile.TemporaryDirectory()
         self.addCleanup(self.project.cleanup)
         self.master, self.slave = pty.openpty()
@@ -43,6 +44,7 @@ class TerminalTest(unittest.TestCase):
         )
 
     def tearDown(self):
+        """Завершить тестовый CLI и закрыть дескрипторы PTY"""
         if self.process.poll() is None:
             self.process.kill()
             self.process.wait(timeout=5)
@@ -50,6 +52,7 @@ class TerminalTest(unittest.TestCase):
         os.close(self.slave)
 
     def read_until(self, expected):
+        """Прочитать вывод PTY до ожидаемого фрагмента или истечения таймаута"""
         output = b""
         deadline = time.monotonic() + 5
         while expected not in output and time.monotonic() < deadline:
@@ -59,6 +62,7 @@ class TerminalTest(unittest.TestCase):
         return output
 
     def assert_terminal_restored(self):
+        """Проверить восстановление настроек терминала после выхода из CLI"""
         restored = termios.tcgetattr(self.slave)
         # macOS выставляет PENDIN при возврате в канонический режим:
         # это служебный флаг повторной обработки ожидающего ввода
@@ -68,6 +72,7 @@ class TerminalTest(unittest.TestCase):
         self.assertEqual(restored, original)
 
     def test_commands_resize_interrupt_and_exit(self):
+        """Проверить команды bash, размер PTY, Ctrl+C и штатный выход"""
         os.write(self.master, b"printf 'RESULT:%s\\n' $((6*7))\n")
         self.read_until(b"RESULT:42")
         size = struct.pack("HHHH", 31, 97, 0, 0)
@@ -86,6 +91,7 @@ class TerminalTest(unittest.TestCase):
         self.assert_terminal_restored()
 
     def test_eof_exits_and_restores_terminal(self):
+        """Проверить выход по Ctrl+D и восстановление терминала"""
         os.write(self.master, b"\x04")
         self.read_until("Сессия DevLab завершена".encode())
         self.assertEqual(self.process.wait(timeout=5), 0)

@@ -10,6 +10,7 @@ from devlab.practice.git_state import stable_state
 
 
 def fingerprint(folder, excluded=None, internal_dir=None):
+    """Собрать признаки изменений файлов, исключая служебные пути"""
     entries = []
     for root, directories, files in os.walk(folder):
         if internal_dir is not None:
@@ -39,6 +40,7 @@ class Observer:
         on_worktree=None,
         internal_dir=None,
     ):
+        """Подготовить наблюдение папки, локальный снимок и обработчики состояний"""
         self.folder, self.events, self.snapshot = (
             Path(folder).resolve(),
             events,
@@ -62,6 +64,7 @@ class Observer:
         self.send_pending = True
 
     def refresh(self, command_status=None):
+        """Обновить локальный снимок и при необходимости передать состояние отправителям"""
         if command_status is not None:
             self.send_pending = True
         try:
@@ -133,6 +136,7 @@ class Observer:
             )
 
     def run(self):
+        """Обрабатывать завершения команд и периодически проверять внешние изменения"""
         previous = None
         pending = 0.0
         last_check = 0.0
@@ -160,5 +164,6 @@ class Observer:
         self.refresh(0)
 
     def close(self):
+        """Остановить наблюдение и дождаться финального чтения состояния"""
         self.stop.set()
         self.thread.join()

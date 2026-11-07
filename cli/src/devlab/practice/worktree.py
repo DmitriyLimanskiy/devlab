@@ -18,6 +18,7 @@ class WorktreeSender:
         poll_interval=0.3,
         connector=connect,
     ):
+        """Подготовить отправку последних статусов файлов через WebSocket"""
         self.client, self.connection = client, connection
         self.snapshot = Path(snapshot) if snapshot is not None else None
         self.retry_delay, self.resend_interval = retry_delay, resend_interval
@@ -31,9 +32,11 @@ class WorktreeSender:
         self.thread = threading.Thread(target=self.run, daemon=True)
 
     def start(self):
+        """Запустить фоновое чтение снимка и отправку файлов"""
         self.thread.start()
 
     def publish(self, state):
+        """Сохранить копию последних статусов файлов с новой оперативной версией"""
         files = {"kind": state["kind"], "path": state["path"]}
         if state["kind"] == "repository":
             files["files"] = state["files"]
@@ -48,12 +51,14 @@ class WorktreeSender:
             self.condition.notify_all()
 
     def seed(self, state):
+        """Передать свежее начальное состояние, если отправителю ещё нечего доставлять"""
         # Начальное чтение нужно и при отказе перезаписывать старый state.json
         with self.condition:
             if self.latest is None:
                 self.publish(state)
 
     def poll_snapshot(self):
+        """Прочитать изменившийся state.json текущего запуска и обновить пакет файлов"""
         if self.snapshot is None:
             return
         try:
@@ -86,6 +91,7 @@ class WorktreeSender:
             return
 
     def _send_state(self, socket, payload):
+        """Отправить пакет файлов и проверить подтверждение сессии и версии"""
         socket.send(
             json.dumps(
                 {
@@ -113,6 +119,7 @@ class WorktreeSender:
             raise ValueError("Нет подтверждения оперативного состояния")
 
     def run(self):
+        """Доставлять последнее состояние файлов с переподключением и повторами"""
         socket = None
         delay = self.retry_delay
         retry_at = resend_at = 0
@@ -188,6 +195,7 @@ class WorktreeSender:
                 socket.close()
 
     def close(self):
+        """Ограниченно дождаться последнего подтверждения и закрыть отправитель"""
         self.poll_snapshot()
         with self.condition:
             if self.latest is not None and not self.halted:

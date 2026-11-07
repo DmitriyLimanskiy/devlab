@@ -14,8 +14,10 @@ const navigation = [
   { path: pages.git, label: 'Git', icon: FlaskConical },
 ]
 
+// Вернуть ответ API без дополнительного преобразования
 const identity = data => data
 
+// Загрузить и проверить данные API с отменой запроса и возможностью повтора
 function useApi(path, parse = identity, method = 'GET', body = null) {
   const [state, setState] = useState({ loading: true, data: null, error: false })
   const [attempt, setAttempt] = useState(0)
@@ -43,6 +45,7 @@ function useApi(path, parse = identity, method = 'GET', body = null) {
   return { ...state, retry: () => setAttempt(value => value + 1) }
 }
 
+// Показать загрузку, панель ошибки или содержимое успешного ответа
 function ApiState({ state, children }) {
   if (state.loading) return <p role="status">Загрузка…</p>
   if (state.error) return <div className="api-error">
@@ -54,20 +57,24 @@ function ApiState({ state, children }) {
   return children(state.data)
 }
 
+// Открыть сессию выбранного курса и передать её данные странице Git
 function GitPractice({ course }) {
   const state = useApi(api.git, parseGitCourse, 'POST', JSON.stringify({ course_slug: course.id }))
   return <ApiState state={state}>{practice => <GitCourse title={course.title} steps={practice.steps} sessionId={practice.session_id} />}</ApiState>
 }
 
+// Показать вкладки Git-курсов и синхронизировать выбранный курс с URL
 function GitTabs({ courses }) {
   const requested = new URLSearchParams(window.location.search).get('course')
   const [selected, setSelected] = useState(requested)
   const course = courses.find(item => item.id === selected) ?? courses[0]
   if (!course) return <p>Курсы Git пока не добавлены</p>
+  // Выбрать курс и обновить адрес страницы без перезагрузки
   function selectCourse(slug) {
     setSelected(slug)
     window.history.replaceState(null, '', gitCoursePage(slug))
   }
+  // Обеспечить переключение вкладок курса с клавиатуры
   function handleTabKey(event, index) {
     let next
     if (event.key === 'ArrowRight') next = (index + 1) % courses.length
@@ -91,11 +98,13 @@ function GitTabs({ courses }) {
   </div>
 }
 
+// Загрузить список Git-курсов для вкладок страницы
 function GitPage() {
   const state = useApi(api.git, parseCatalog)
   return <ApiState state={state}>{courses => <GitTabs courses={courses} />}</ApiState>
 }
 
+// Показать каталог направлений и переходы к доступным курсам
 function Catalog() {
   const state = useApi(api.catalog, parseCatalog)
   return <section className="catalog" aria-labelledby="catalog-title">
@@ -113,10 +122,12 @@ function Catalog() {
   </section>
 }
 
+// Нарисовать декоративный знак терминала в боковом меню
 function TerminalMark() {
   return <span className="sidebar-terminal" aria-hidden="true">&gt;_</span>
 }
 
+// Собрать оболочку приложения, навигацию и выбранную страницу
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 480px)').matches)
   const requestedPath = window.location.pathname.replace(/\/$/, '') || '/'

@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { newerState, parsePracticeState, graphLayout, graphRefs, commitCount, repositoryGraph, parseSnapshotHistory, graphConnections } from './practiceState.js'
 const id = '12345678-1234-1234-1234-123456789abc'
+// Собрать тестовый ответ сессии со снимком заданной версии
 const state = (generation, version) => ({ session_id: id, status: 'active', cli_connected: false, cli_lease_seconds: 0, generation, connected_at: null, snapshot: { session_id: id, schema_version: 1, generation, version, received_at: '2026-10-31T12:00:00Z', state: { kind: 'no_repository', path: '/tmp/repo' } } })
 test('проверка ответа, пустого снимка и повреждённых данных', () => {
   assert.equal(parsePracticeState(state(1, 1), id).snapshot.version, 1)
@@ -88,6 +89,7 @@ test('новые поля снимка проверяются, прежние с
 
 test('история сервера восстанавливает линию после fast-forward и перезагрузки', () => {
   const base = { id: 'base', parents: [] }, c = { id: 'c', parents: ['base'] }, d = { id: 'd', parents: ['c'] }
+  // Собрать тестовое состояние репозитория и указателей веток
   const repo = (commits, refs, head) => ({ kind: 'repository', path: '/repo', commits, refs, head })
   const history = [
     { state: repo([base], ['refs/heads/main base'], 'base') },
@@ -124,6 +126,7 @@ test('страницы истории проверяют порядок, сес�
 
 test('fast-forward замыкает dev на main и не возвращает конечный коммит вниз при следующем commit', () => {
   const base = { id: 'base', parents: [] }, c = { id: 'c', parents: ['base'] }, d = { id: 'd', parents: ['c'] }, e = { id: 'e', parents: ['d'] }
+  // Собрать тестовое состояние репозитория и указателей веток
   const repo = (commits, main, dev) => ({ kind: 'repository', path: '/repo', commits,
     refs: [`refs/heads/main ${main}`, `refs/heads/dev ${dev}`], head: main })
   const history = [
@@ -145,6 +148,7 @@ test('fast-forward замыкает dev на main и не возвращает �
 
 test('исходный коммит остаётся на dev, а main получает второе отображение SHA', () => {
   const base = { id: 'base', parents: [] }, tip = { id: 'tip', parents: ['base'] }
+  // Собрать тестовое состояние репозитория и указателей веток
   const repo = (main, dev) => ({ kind: 'repository', path: '/repo', branch: 'main', head_kind: 'branch', commits: [tip, base],
     refs: [`refs/heads/main ${main}`, `refs/heads/dev ${dev}`], head: main })
   const history = [{ state: repo('base', 'tip') }, { state: repo('tip', 'tip') }]
@@ -167,6 +171,7 @@ test('исходный коммит остаётся на dev, а main полу�
 
 test('нормализованные кадры содержат только новые коммиты, HEAD берётся из текущего состояния', () => {
   const base = { id: 'base', parents: [] }, tip = { id: 'tip', parents: ['base'] }
+  // Собрать тестовое состояние репозитория и указателей веток
   const repo = (commits, main, dev, branch = 'main') => ({ kind: 'repository', path: '/repo', commits,
     refs: [`refs/heads/main ${main}`, `refs/heads/dev ${dev}`], head: branch === 'main' ? main : dev, branch, head_kind: 'branch' })
   const history = [
@@ -180,9 +185,11 @@ test('нормализованные кадры содержат только н
   assert.ok(graph.nodes.find(node => node.repeated).refNames.includes('main'))
 })
 
+// Собрать тестовый граф с именованными ветками и текущим HEAD
 const graphRepo = (commits, heads, branch = 'dev') => ({ kind: 'repository', path: '/repo',
   commits, refs: Object.entries(heads).map(([name, id]) => `refs/heads/${name} ${id}`),
   branch, head_kind: 'branch', head: heads[branch] })
+// Проверить, что рёбра графа направлены от предков к потомкам
 function assertForwardEdges(graph) {
   const nodes = new Map(graph.nodes.map(node => [node.key, node]))
   assert.equal(new Set(graph.nodes.map(node => `${node.lane}:${node.x}`)).size, graph.nodes.length)

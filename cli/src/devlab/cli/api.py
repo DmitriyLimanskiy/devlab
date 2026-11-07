@@ -10,13 +10,15 @@ class ApiError(Exception):
     """Сообщение, безопасное для вывода без ключа и тела HTTP-ответа"""
 
     def __init__(self, message, *, retryable=True):
+        """Сохранить безопасное сообщение ошибки и допустимость повторной отправки"""
         super().__init__(message)
         self.retryable = retryable
 
 
 class NoRedirects(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
+        """Запретить автоматические HTTP-перенаправления запросов с ключом"""
+        return None  # noqa: RET501 — явный отказ от перенаправления urllib
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,7 @@ class Connection:
 
 class ApiClient:
     def __init__(self, server_url: str, timeout: float = 3):
+        """Проверить адрес сервера и подготовить HTTP-клиент без перенаправлений"""
         try:
             parsed = urlsplit(server_url)
             # Чтение свойства проверяет корректность номера порта
@@ -51,6 +54,7 @@ class ApiClient:
         self.opener = build_opener(NoRedirects())
 
     def request(self, path, payload=None, key=None):
+        """Выполнить JSON-запрос с ограничением ответа и безопасной обработкой ошибок"""
         headers = {"Accept": "application/json"}
         data = None
         if payload is not None:
@@ -91,6 +95,7 @@ class ApiClient:
             raise ApiError("Сервер вернул некорректный JSON") from None
 
     def catalog(self):
+        """Проверить каталог сервера и упорядочить курсы по позиции"""
         data = self.request("/catalog")
         if not isinstance(data, list) or any(
             not isinstance(course, dict)
@@ -107,6 +112,7 @@ class ApiClient:
         return sorted(data, key=lambda course: course["position"])
 
     def connect(self, slug):
+        """Получить и проверить ключ и поколение активной сессии курса"""
         data = self.request("/cli-connect", {"course_slug": slug})
         try:
             session_id = str(UUID(data["session_id"]))
@@ -123,6 +129,7 @@ class ApiClient:
         return Connection(session_id, generation, key)
 
     def send_snapshot(self, connection, state, version):
+        """Отправить снимок и проверить подтверждение его поколения и версии"""
         payload = {
             "schema_version": 1,
             "session_id": connection.session_id,
@@ -142,9 +149,11 @@ class ApiClient:
             raise ApiError("Сервер не подтвердил отправленную версию снимка")
 
     def send_initial(self, connection, state):
+        """Отправить начальный снимок с первой версией поколения"""
         self.send_snapshot(connection, state, 1)
 
     def presence(self, connection, disconnect=False):
+        """Передать heartbeat или отключение и проверить подтверждение сервера"""
         data = self.request(
             "/cli-disconnect" if disconnect else "/cli-heartbeat",
             {"session_id": connection.session_id, "generation": connection.generation},

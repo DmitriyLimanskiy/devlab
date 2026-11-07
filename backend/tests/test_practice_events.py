@@ -7,6 +7,7 @@ from app.services.practice.practice_events import PracticeEvents
 
 class EventsTest(unittest.IsolatedAsyncioTestCase):
     async def test_broadcast_coalescing_and_cleanup(self):
+        """Проверить объединение сигналов и очистку подписчиков после отключения"""
         events = PracticeEvents()
         session, other = uuid4(), uuid4()
         with (
@@ -27,6 +28,7 @@ class EventsTest(unittest.IsolatedAsyncioTestCase):
 
 class PresenceTest(unittest.TestCase):
     def test_timeout_generation_and_disconnect(self):
+        """Проверить истечение аренды, проверку поколения и отключение CLI"""
         from app.services.cli.cli_presence import CliPresence
 
         now = [100.0]

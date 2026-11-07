@@ -10,14 +10,18 @@ from devlab.cli.presence import PresenceReporter
 
 class PresenceTest(unittest.TestCase):
     def test_background_heartbeat_and_clean_disconnect(self):
+        """Проверить фоновый heartbeat и штатное отключение присутствия"""
+
         class Client:
             timeout = 0.1
 
             def __init__(self):
+                """Подготовить состояние тестового клиента и сценарий сетевых ошибок"""
                 self.called = threading.Event()
                 self.calls = []
 
             def presence(self, connection, disconnect=False):
+                """Записать тестовый heartbeat или имитировать ошибку ключа"""
                 self.calls.append(disconnect)
                 self.called.set()
 
@@ -31,13 +35,17 @@ class PresenceTest(unittest.TestCase):
         self.assertFalse(reporter.thread.is_alive())
 
     def test_invalid_key_stops_heartbeat_without_reconnect(self):
+        """Проверить остановку heartbeat при недействующем ключе без нового подключения"""
+
         class Client:
             timeout = 0.1
 
             def __init__(self):
+                """Подготовить состояние тестового клиента и сценарий сетевых ошибок"""
                 self.calls = 0
 
             def presence(self, connection, disconnect=False):
+                """Записать тестовый heartbeat или имитировать ошибку ключа"""
                 self.calls += 1
                 raise ApiError("Недействующий ключ", retryable=False)
 

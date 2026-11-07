@@ -1,5 +1,8 @@
+// Проверить неотрицательное целое число, безопасное для JavaScript
 const integer = value => Number.isSafeInteger(value) && value >= 0
+// Проверить полный SHA-1 или SHA-256 объекта Git
 const hash = value => typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value)
+// Проверить сессию и снимок перед обновлением состояния браузера
 export function parsePracticeState(data, sessionId) {
   if (data?.graph_history_id !== undefined && !integer(data.graph_history_id)) throw new Error('Некорректная версия истории')
   if (!data || data.session_id !== sessionId || !integer(data.generation) ||
@@ -30,6 +33,7 @@ export function parsePracticeState(data, sessionId) {
   }
   return data
 }
+// Сохранить самое новое состояние с учётом поколения и версии снимка
 export function newerState(old, next) {
   if (!old) return next
   if (next.generation < old.generation) return old
@@ -38,6 +42,7 @@ export function newerState(old, next) {
   return next
 }
 
+// Сформировать количество коммитов с правильным склонением
 export function commitCount(count) {
   const lastTwo = count % 100, last = count % 10
   return `${count} ${lastTwo >= 11 && lastTwo <= 14 ? 'коммитов' : last === 1 ? 'коммит' : last >= 2 && last <= 4 ? 'коммита' : 'коммитов'}`
@@ -45,6 +50,7 @@ export function commitCount(count) {
 
 const graphSpacing = { left: 90, top: 70, column: 170, lane: 120 }
 const branchPalette = ['var(--branch-violet)', 'var(--branch-orange)', 'var(--branch-green)', 'var(--branch-pink)']
+// Проверить достижимость предка по всем родителям коммита
 function isAncestor(byId, ancestor, descendant) {
   const pending = [descendant], seen = new Set()
   while (pending.length) {
@@ -57,6 +63,7 @@ function isAncestor(byId, ancestor, descendant) {
   return false
 }
 
+// Расположить коммиты по линиям веток с сохранением наблюдавшейся истории
 export function graphLayout(commits, refs = [], head = null, previous = null) {
   const step = (previous?.step ?? 0) + 1
   const byId = new Map(commits.map(c => [c.id, c]))
@@ -73,6 +80,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
   const branchColors = new Map(laneNames.map((name, i) => [name, laneColors[i]]))
   branchColors.set(main?.name ?? 'HEAD', 'var(--accent)')
   usedColors.add('var(--accent)')
+  // Выбрать и закрепить цвет линии ветки
   function colorFor(name) {
     if (branchColors.has(name)) return branchColors.get(name)
     let colorHash = 0
@@ -84,6 +92,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
     return color
   }
   branches.forEach(b => colorFor(b.name))
+  // Получить существующую линию ветки или создать новую
   function ensureLane(name) {
     let lane = laneNames.indexOf(name)
     if (lane < 0) {
@@ -93,6 +102,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
     }
     return lane
   }
+  // Закрепить свободную цепочку первых родителей за линией ветки
   function claim(id, name) {
     if (!byId.has(id) || lanes.has(id)) return
     const lane = ensureLane(name)
@@ -101,6 +111,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
       id = byId.get(id).parents[0]
     }
   }
+  // Вычислить глубину коммита с защитой от циклов и повторных расчётов
   function depth(id, visiting = new Set()) {
     if (!byId.has(id) || visiting.has(id)) return -1
     if (depths.has(id)) return depths.get(id)
@@ -157,6 +168,7 @@ export function graphLayout(commits, refs = [], head = null, previous = null) {
   return { nodes, positions, branchColors: Object.fromEntries(branchColors), width: Math.max(320, ...nodes.map(n => n.x + 100)), height: Math.max(180, renderedLanes.length * graphSpacing.lane + 20, branchFlows.length ? 260 : 0), step, lanes: renderedLanes, historicalLabels, branchFlows, branchTips: Object.fromEntries(branches.map(b => [b.name, b.id])) }
 }
 
+// Преобразовать refs в подписи с привязкой тегов к целевым коммитам
 export function graphRefs(state) {
   return state.refs.map(ref => {
     const split = ref.lastIndexOf(' ')
@@ -186,6 +198,7 @@ export function repositoryGraph(state, history = []) {
   return displayGraph(graph ?? graphLayout([]), state)
 }
 
+// Проверить принадлежность, порядок и границы страницы истории
 export function parseSnapshotHistory(page, sessionId, throughId, afterId) {
   if (!page || !Array.isArray(page.snapshots) || typeof page.has_more !== 'boolean') throw new Error('Некорректная история')
   let cursor = afterId
@@ -199,10 +212,12 @@ export function parseSnapshotHistory(page, sessionId, throughId, afterId) {
   return page
 }
 
+// Подготовить отображения коммитов, рёбра и текущие подписи графа
 function displayGraph(graph, state) {
   const nodes = graph.nodes.map(node => ({ ...node, key: node.id, refNames: [] }))
   const byId = new Map(nodes.map(node => [node.id, node]))
   const edges = []
+  // Найти ближайшее отображение коммита, существовавшее к нужному шагу
   function occurrence(id, lane, step) {
     return nodes.filter(node => node.id === id && node.seenStep <= step)
       .sort((a, b) => Math.abs(a.lane - lane) - Math.abs(b.lane - lane) || b.seenStep - a.seenStep)[0]
@@ -231,6 +246,7 @@ function displayGraph(graph, state) {
   }
   const byKey = new Map(nodes.map(node => [node.key, node]))
   const positioned = new Set(), occupied = new Map()
+  // Разместить узел после его предков, исключая наложения на одной линии
   function position(node, visiting = new Set()) {
     if (positioned.has(node.key) || visiting.has(node.key)) return
     visiting.add(node.key)
@@ -261,6 +277,7 @@ function displayGraph(graph, state) {
     width: Math.max(320, ...nodes.map(node => node.x + 100)) }
 }
 
+// Построить SVG-пути рёбер и границ неполной истории
 export function graphConnections(graph) {
   const byKey = new Map(graph.nodes.map(node => [node.key, node]))
   return graph.edges.map((edge, index) => {

@@ -17,6 +17,7 @@ from app.services.cli.live_worktree import live_worktree
 
 class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
     async def test_memory_delivery_without_database_and_generation_rotation(self):
+        """Проверить доставку файлов без БД и сброс состояния при смене поколения"""
         sid = uuid4()
         key = "test-worktree-key"
         live_worktree.bind(sid, 1, hashlib.sha256(key.encode()).hexdigest())
@@ -33,7 +34,10 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         base = f"http://127.0.0.1:{port}"
 
         async def request(path, body=None, token=key):
+            """Выполнить тестовый HTTP-запрос к backend"""
+
             def send():
+                """Передать тестовый запрос или пакет и записать результат отправки"""
                 req = urllib.request.Request(
                     base + path,
                     data=json.dumps(body).encode() if body is not None else None,
@@ -58,7 +62,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         path = f"/api/v1/practice-sessions/{sid}/worktree"
         try:
             with patch(
-                "app.api.routes.cli.worktree.get_session_factory",
+                "app.services.cli.authorization.get_session_factory",
                 side_effect=AssertionError("База не должна вызываться"),
             ):
                 self.assertIsNone((await request(path))["state"])
@@ -105,6 +109,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
     async def test_cli_reads_state_json_and_pushes_external_edits_without_commands(
         self,
     ):
+        """Проверить доставку внешних правок из state.json без команд CLI"""
         import os
         import subprocess
         import sys
@@ -130,6 +135,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(server.started)
 
         async def wait_files(predicate):
+            """Дождаться ожидаемых статусов файлов в оперативном канале"""
             for _ in range(400):
                 state = live_worktree.read(sid)["state"]
                 if state and predicate(state.get("files", [])):
@@ -142,6 +148,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
                 folder = Path(directory)
 
                 def git(*args):
+                    """Выполнить Git во временном тестовом репозитории"""
                     subprocess.run(
                         ["git", "-C", directory, *args], check=True, capture_output=True
                     )
@@ -170,7 +177,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
                 sender.start()
                 try:
                     with patch(
-                        "app.api.routes.cli.worktree.get_session_factory",
+                        "app.services.cli.authorization.get_session_factory",
                         side_effect=AssertionError("БД не нужна"),
                     ):
                         await wait_files(lambda files: files == [])

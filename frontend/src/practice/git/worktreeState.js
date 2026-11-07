@@ -1,5 +1,7 @@
+// Проверить неотрицательное целое число, безопасное для JavaScript
 const integer = value => Number.isSafeInteger(value) && value >= 0
 const statuses = [' ', 'M', 'A', 'D', 'R', 'C', 'U', '?', '!', 'T', 'X']
+// Проверить пакет оперативных статусов файлов и индекса
 export function parseWorktree(data, sessionId) {
   if (!data || data.session_id !== sessionId || !integer(data.generation) || !integer(data.version)) throw new Error('Некорректное состояние файлов')
   const state = data.state
@@ -14,6 +16,7 @@ export function parseWorktree(data, sessionId) {
     !(file.original_path == null || typeof file.original_path === 'string')))) throw new Error('Некорректные статусы файлов')
   return data
 }
+// Выбрать актуальные файлы, не стирая push запоздалым HTTP-ответом
 export function newerWorktree(old, next) {
   if (!old || next.generation > old.generation) return next
   if (next.generation < old.generation) return old

@@ -20,6 +20,7 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 )
 class GitCourseTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        """Создать изолированную схему БД и фабрику тестовых сессий"""
         self.schema = "test_git_course_" + uuid4().hex
         self.engine = create_async_engine(
             os.environ.get("TEST_DATABASE_URL") or database_url(), poolclass=NullPool
@@ -34,11 +35,13 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
         self.factory = async_sessionmaker(translated, expire_on_commit=False)
 
     async def asyncTearDown(self):
+        """Удалить тестовую схему БД и освободить подключения"""
         async with self.engine.begin() as connection:
             await connection.execute(DropSchema(self.schema, cascade=True))
         await self.engine.dispose()
 
     async def prepare_courses(self):
+        """Создать тестовые курсы и шаги в изолированной схеме БД"""
         async with self.factory() as db:
             git, other = (
                 Course(slug="git-sandbox", title="Git"),
@@ -74,10 +77,12 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
             await db.commit()
 
     async def request(self):
+        """Открыть тестовую сессию курса"""
         async with self.factory() as db:
             return await git_course(db, GitCourseReq(course_slug="git-sandbox"))
 
     async def test_parallel_opening_and_steps(self):
+        """Проверить совместное открытие одной сессии и порядок шагов курса"""
         await self.prepare_courses()
         results = await asyncio.gather(*(self.request() for _ in range(6)))
         self.assertEqual(len({r.session_id for r in results}), 1)
@@ -99,6 +104,7 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("key_hash", reused.model_dump())
 
     async def test_closed_session(self):
+        """Проверить создание новой сессии после закрытия предыдущей"""
         await self.prepare_courses()
         old = await self.request()
         async with self.factory() as db:
@@ -109,6 +115,7 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(old.session_id, (await self.request()).session_id)
 
     async def test_missing_course(self):
+        """Проверить ответ при отсутствии запрошенного курса"""
         with self.assertRaises(HTTPException) as error:
             await self.request()
         self.assertEqual(error.exception.status_code, 404)
@@ -116,6 +123,7 @@ class GitCourseTest(unittest.IsolatedAsyncioTestCase):
 
 class GitCourseTabsTest(GitCourseTest):
     async def test_course_slug_is_not_limited_to_two_names(self):
+        """Проверить открытие произвольного допустимого Git-курса"""
         async with self.factory() as db:
             db.add(Course(slug="git-advanced", title="Новый курс", position=3))
             await db.commit()
@@ -129,6 +137,7 @@ class GitCourseTabsTest(GitCourseTest):
             self.assertEqual(stored_course.slug, "git-advanced")
 
     async def test_list_filters_courses_without_creating_sessions(self):
+        """Проверить фильтрацию списка Git-курсов без создания сессий"""
         await self.prepare_courses()
         async with self.factory() as db:
             db.add(
@@ -144,10 +153,12 @@ class GitCourseTabsTest(GitCourseTest):
             )
 
     async def test_empty_list(self):
+        """Проверить пустой список при отсутствии Git-курсов"""
         async with self.factory() as db:
             self.assertEqual(await git_courses(db), [])
 
     async def test_independent_sessions_and_empty_full_course_steps(self):
+        """Проверить независимость сессий курсов и пустых списков шагов"""
         await self.prepare_courses()
         sandbox = await self.request()
         async with self.factory() as db:
@@ -175,6 +186,7 @@ class GitCourseTabsTest(GitCourseTest):
             )
 
     async def test_missing_full_course_does_not_replace_sandbox(self):
+        """Проверить отсутствие подмены недоступного курса песочницей"""
         await self.prepare_courses()
         sandbox = await self.request()
         async with self.factory() as db:

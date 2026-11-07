@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react'
 import { practiceApi, practiceEvents, practiceHistory } from '../../routes'
 import { parsePracticeState, newerState, parseSnapshotHistory } from './practiceState'
 
+// Синхронизировать снимок, историю графа и присутствие CLI с backend
 export function usePracticeState(sessionId) {
   const [result, setResult] = useState({ data: null, connection: 'connecting', error: false, presenceDeadline: 0 })
   useEffect(() => {
     let disposed = false, socket, reconnect, poll, controller, reading = false, dirty = false, delay = 1000
     let history = [], cursor = 0
     setResult({ data: null, connection: 'connecting', error: false, presenceDeadline: 0 })
+    // Обновить статус связи, если подписка ещё активна
     const connection = value => !disposed && setResult(old => ({ ...old, connection: value }))
+    // Перечитать состояние через HTTP, объединяя одновременные запросы обновления
     async function refresh() {
       if (disposed) return
       if (reading) { dirty = true; return }
@@ -39,6 +42,7 @@ export function usePracticeState(sessionId) {
         if (dirty && !disposed) { dirty = false; refresh() }
       }
     }
+    // Открыть WebSocket-подписку с восстановлением после разрыва связи
     function connect() {
       if (disposed) return
       const url = new URL(practiceEvents(sessionId), window.location.href)
@@ -65,6 +69,7 @@ export function usePracticeState(sessionId) {
     connect()
     poll = setInterval(refresh, 10000)
     const expiry = setInterval(() => setResult(old => old.data?.cli_connected && Date.now() >= old.presenceDeadline ? { ...old, data: { ...old.data, cli_connected: false } } : old), 1000)
+    // Обновить данные при возвращении пользователя к видимой странице
     const resume = () => { if (document.visibilityState === 'visible') refresh() }
     document.addEventListener('visibilitychange', resume)
     return () => {

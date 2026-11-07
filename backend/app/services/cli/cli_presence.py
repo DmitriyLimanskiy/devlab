@@ -6,10 +6,12 @@ class CliPresence:
     ttl = 35
 
     def __init__(self, clock=time.monotonic):
+        """Подготовить часы и хранилище аренд присутствия CLI"""
         self.clock = clock
         self.connections: dict[UUID, tuple[int, float]] = {}
 
     def remaining(self, session_id, generation):
+        """Вернуть оставшийся срок присутствия указанного поколения CLI"""
         entry = self.connections.get(session_id)
         if entry is None or entry[0] != generation:
             return 0.0
@@ -19,11 +21,13 @@ class CliPresence:
         return remaining
 
     def touch(self, session_id, generation):
+        """Продлить аренду CLI и сообщить, появилось ли новое присутствие"""
         was_connected = self.remaining(session_id, generation) > 0
         self.connections[session_id] = (generation, self.clock() + self.ttl)
         return not was_connected
 
     def remove(self, session_id, generation=None):
+        """Удалить присутствие CLI, если поколение совпадает"""
         entry = self.connections.get(session_id)
         if entry is not None and (generation is None or entry[0] == generation):
             del self.connections[session_id]

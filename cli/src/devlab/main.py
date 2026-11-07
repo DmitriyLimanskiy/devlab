@@ -11,6 +11,7 @@ from devlab.practice.project import ensure_state_ignored
 
 
 def main() -> int:
+    """Подготовить подключение и папку проекта, затем запустить интерактивный bash"""
     launch_folder = Path.cwd()
     if sys.argv[1:]:
         print(

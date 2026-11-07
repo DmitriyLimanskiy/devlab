@@ -3,10 +3,13 @@ import { GitBranch, GitCommitHorizontal, Folder, Layers, CircleDashed, ChevronRi
 import { commitCount, repositoryGraph, graphRefs, graphConnections } from './practiceState'
 
 const statuses = { M: 'Изменён', A: 'Добавлен', D: 'Удалён', R: 'Переименован', C: 'Скопирован', U: 'Конфликт', '?': 'Не отслеживается', '!': 'Игнорируется', T: 'Изменён тип', X: 'Неизвестный статус' }
+// Показать пояснение об отсутствии данных в панели репозитория
 function Empty({ children }) { return <div className="repo-empty"><CircleDashed size={24} strokeWidth={1.3} /><p>{children}</p></div> }
+// Оформить панель репозитория с заголовком и дополнительной подписью
 function Panel({ icon: Icon, title, detail, type, children }) {
   return <section className={`repo-panel repo-panel-${type}`}><header><h2><Icon size={17} />{title}</h2><span>{detail}</span></header>{children}</section>
 }
+// Показать граф коммитов, refs и признаки ограниченной истории
 function History({ state, previous, history }) {
   const graph = repositoryGraph(state, history)
   if (!graph.nodes.length) return <Empty>Пока нет коммитов · HEAD → {state.branch ?? '—'}</Empty>
@@ -39,6 +42,7 @@ function History({ state, previous, history }) {
     {outside.length > 0 && <p className="history-note">Вне истории: {outside.map(r => `${r.name} → ${r.id.slice(0, 8)}`).join(', ')}</p>}
   </>
 }
+// Показать статусы файлов выбранного столбца с подсветкой изменений
 function Files({ files, column, previous }) {
   const items = files.filter(f => f.conflict || (f[column] !== ' ' && f[column] !== '!' && (column !== 'index' || f[column] !== '?')))
   if (!items.length) return <Empty>{column === 'index' ? 'Подготовленных изменений нет' : 'Рабочая папка без изменений'}</Empty>
@@ -51,6 +55,7 @@ function Files({ files, column, previous }) {
     </li>
   })}</ul>
 }
+// Показать рабочую папку и индекс из отдельного оперативного канала
 function WorkingFiles({ worktree }) {
   const state = worktree?.data?.state
   const memory = useRef(null)
@@ -68,6 +73,7 @@ function WorkingFiles({ worktree }) {
   </>
 }
 
+// Объединить граф и файловые панели с анимацией изменений снимка
 export function GitRepository({ snapshot, history, worktree }) {
   const current = snapshot?.state
   const memory = useRef({ snapshot: null, previous: null })

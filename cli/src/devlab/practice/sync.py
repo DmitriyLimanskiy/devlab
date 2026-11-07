@@ -12,6 +12,7 @@ class SnapshotSender:
     def __init__(
         self, client, connection, folder, state_dir=None, retry_delay=1, max_delay=30
     ):
+        """Подготовить FIFO снимков, файл очереди и параметры повторной доставки"""
         self.client, self.connection = client, connection
         root = Path(
             state_dir
@@ -38,13 +39,15 @@ class SnapshotSender:
 
     @property
     def pending(self):
+        """Вернуть первый неподтверждённый снимок очереди"""
         return self.queue[0] if self.queue else None
 
     def start(self):
+        """Запустить поток последовательной доставки снимков"""
         self.thread.start()
 
     def persist(self):
-        """Вызывается под condition; ключ не входит в сохраняемое тело запроса"""
+        """Атомарно сохранить очередь без ключа подключения под блокировкой condition"""
         temporary = None
         try:
             self.pending_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -67,6 +70,7 @@ class SnapshotSender:
                     pass
 
     def publish(self, state):
+        """Поставить изменившийся снимок в очередь с новой сетевой версией"""
         # Снимок копируется: новые состояния не должны менять тело повторного запроса
         state = {**state, "files": []} if state.get("kind") == "repository" else state
         canonical = json.dumps(state, sort_keys=True, ensure_ascii=True)
@@ -88,6 +92,7 @@ class SnapshotSender:
             self.condition.notify_all()
 
     def run(self):
+        """Доставлять очередь по порядку с повтором неподтверждённой версии"""
         delay = self.retry_delay
         while True:
             with self.condition:
@@ -139,6 +144,7 @@ class SnapshotSender:
                 delay = self.retry_delay
 
     def close(self):
+        """Ограниченно дождаться подтверждений и остановить отправитель"""
         with self.condition:
             if self.closed:
                 return
@@ -154,6 +160,7 @@ class SnapshotSender:
         self.thread.join(timeout=0.1)
 
     def summary(self):
+        """Сформировать сообщение об ошибке или оставшихся очередях снимков"""
         with self.condition:
             try:
                 old_queues = [

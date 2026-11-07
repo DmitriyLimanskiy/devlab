@@ -5,6 +5,7 @@ export const courseStatusLabels = {
   archived: 'В архиве',
 }
 
+// Проверить уникальность и поля курсов, сохранив порядок равных позиций
 export function parseCatalog(data) {
   if (!Array.isArray(data) || data.some(course =>
     !course || typeof course.id !== 'string' || !course.id ||

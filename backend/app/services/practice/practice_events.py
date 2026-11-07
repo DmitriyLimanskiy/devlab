@@ -5,10 +5,12 @@ from uuid import UUID
 
 class PracticeEvents:
     def __init__(self):
+        """Подготовить реестр подписчиков событий практики"""
         self.listeners: dict[UUID, set[asyncio.Queue]] = {}
 
     @contextmanager
     def subscribe(self, session_id: UUID):
+        """Зарегистрировать ограниченную очередь и удалить подписку при завершении"""
         queue = asyncio.Queue(maxsize=1)
         self.listeners.setdefault(session_id, set()).add(queue)
         try:
@@ -19,6 +21,7 @@ class PracticeEvents:
                 del self.listeners[session_id]
 
     def publish(self, session_id: UUID):
+        """Уведомить подписчиков об изменении состояния без дублирования сигналов"""
         for queue in self.listeners.get(session_id, ()):
             if not queue.full():
                 queue.put_nowait({"type": "state_changed"})
