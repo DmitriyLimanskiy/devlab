@@ -13,6 +13,7 @@ from app.api.schemas.cli.snapshot import SnapshotReq, SnapshotRes
 from app.db.models.courses.course import Course
 from app.db.models.practice.practice import PracticeSession
 from app.db.session import get_session
+from app.services.cli.authorization import CliAuthorization
 from app.services.cli.cli_presence import presence
 from app.services.cli.live_worktree import live_worktree
 from app.services.practice.practice_events import events
@@ -73,7 +74,9 @@ async def cli_send_state(
         Depends(bearer),
     ],
 ):
-    await authorized_session(db, snapshot.session_id, snapshot.generation, credentials)
+    await CliAuthorization.authorized_session(
+        db, snapshot.session_id, snapshot.generation, credentials
+    )
 
     receipt, changed = await store_state(db, snapshot)
     await db.commit()
@@ -87,54 +90,15 @@ async def cli_send_state(
     )
 
 
-async def authorized_session(db, session_id, generation, credentials):
-    if credentials is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Требуется ключ подключения",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    practice_session = await db.scalar(
-        select(PracticeSession)
-        .where(PracticeSession.id == session_id)
-        .with_for_update()
-    )
-
-    if practice_session is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
-
-    supplied_hash = hashlib.sha256(credentials.credentials.encode()).hexdigest()
-
-    if practice_session.key_hash is None or not secrets.compare_digest(
-        supplied_hash,
-        practice_session.key_hash,
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Неверный ключ подключения",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if practice_session.status != "active":
-        raise HTTPException(status_code=409, detail="Сессия закрыта")
-
-    if practice_session.generation != generation:
-        raise HTTPException(
-            status_code=409,
-            detail="Поколение подключения больше не действует",
-        )
-
-    return practice_session
-
-
 @router.post("/cli-heartbeat", response_model=CliPresenceRes)
 async def cli_heartbeat(
     request: CliPresenceReq,
     db: Annotated[AsyncSession, Depends(get_session)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ):
-    await authorized_session(db, request.session_id, request.generation, credentials)
+    await CliAuthorization.authorized_session(
+        db, request.session_id, request.generation, credentials
+    )
     await db.commit()
     if presence.touch(request.session_id, request.generation):
         events.publish(request.session_id)
@@ -149,7 +113,9 @@ async def cli_disconnect(
     db: Annotated[AsyncSession, Depends(get_session)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ):
-    await authorized_session(db, request.session_id, request.generation, credentials)
+    await CliAuthorization.authorized_session(
+        db, request.session_id, request.generation, credentials
+    )
     await db.commit()
     if presence.remove(request.session_id, request.generation):
         events.publish(request.session_id)

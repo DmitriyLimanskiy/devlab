@@ -38,14 +38,16 @@ function StepDescription({ step }) {
   return <section className="step-description" aria-labelledby="step-description-title">
     <header className="step-description-heading">
       <h2 id="step-description-title"><BookOpen size={17} /><span title={step?.title}>{step ? withoutFinalPeriod(step.title) : 'Описание шага'}</span></h2>
-      <button type="button" className="step-description-toggle" style={{ visibility: overflowing || expanded ? 'visible' : 'hidden' }} disabled={!overflowing && !expanded} aria-expanded={expanded} aria-controls="step-description-content" onClick={toggleExpanded}>
-        {expanded ? 'Свернуть' : 'Развернуть'}{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
     </header>
     <div id="step-description-content" className={`step-description-viewport ${expanded ? 'expanded' : ''} ${overflowing && !expanded ? 'has-overflow' : ''}`} style={{ height: expanded ? expandedHeight : 112 }} tabIndex={expanded ? 0 : undefined}>
       <div ref={contentRef} className="step-description-content">
         {step ? <StepContent content={step.content} /> : <p>Шаги курса пока не добавлены</p>}
       </div>
+    </div>
+    <div className="step-description-actions">
+      <button type="button" className="step-description-toggle" style={{ visibility: overflowing || expanded ? 'visible' : 'hidden' }} disabled={!overflowing && !expanded} aria-expanded={expanded} aria-controls="step-description-content" onClick={toggleExpanded}>
+        {expanded ? 'Свернуть' : 'Развернуть'}{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      </button>
     </div>
   </section>
 }

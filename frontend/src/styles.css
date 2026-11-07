@@ -117,6 +117,7 @@ code { font-family: var(--font-mono); }
 .step-description-heading h2 { display: flex; align-items: center; gap: 9px; min-width: 0; margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .step-description-heading h2 svg { flex-shrink: 0; color: var(--accent); }
 .step-description-heading h2 span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step-description-actions { display: flex; justify-content: center; margin-top: 8px; }
 .step-description-toggle { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 5px 6px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--accent); font-size: 12px; cursor: pointer; }
 .step-description-toggle:hover { background: var(--bg-selected); }
 .step-description-viewport { height: 112px; overflow: hidden; transition: height 240ms ease; overflow-anchor: none; scrollbar-gutter: stable; }
@@ -265,7 +266,6 @@ code { font-family: var(--font-mono); }
   .course-diagram { margin-inline: -20px; }
   .step-description-heading { flex-wrap: wrap; gap: 4px; }
   .step-description-heading h2 { width: 100%; }
-  .step-description-toggle { margin-left: auto; }
   .course-tabs button { padding-inline: 12px; }
 }
 
@@ -382,3 +382,13 @@ code { font-family: var(--font-mono); }
   .course, .practice-step, .course-tabs button, .nav-item, .icon-button, .step-description-toggle { transition: none; }
   .course:hover, .course:focus-within, .practice-step:hover { transform: none; }
 }
+
+
+/* Ошибка запроса занимает центр соответствующей области данных */
+.api-error { display: grid; place-items: center; width: 100%; height: 100%; min-height: 200px; min-width: 0; padding: 16px; }
+.api-error-panel { display: flex; flex-direction: column; align-items: center; gap: 16px; width: min(100%, 360px); padding: 28px 24px; border: 1px solid var(--glass-border); border-radius: var(--glass-radius); background: var(--glass-reflection), var(--glass-surface); box-shadow: var(--glass-shadow); text-align: center; overflow-wrap: anywhere; }
+.api-error-panel p { color: var(--text-primary); font-size: 15px; }
+.api-error-retry { min-height: 44px; max-width: 100%; padding: 10px 16px; border: 1px solid var(--border-accent); border-radius: 10px; background: var(--glass-control); color: var(--accent); cursor: pointer; }
+.api-error-retry:hover { border-color: var(--accent); background: var(--bg-selected); }
+.catalog:has(> .api-error) { display: flex; flex-direction: column; min-height: 100%; }
+.catalog > .api-error { flex: 1; height: auto; }

@@ -45,7 +45,12 @@ function useApi(path, parse = identity, method = 'GET', body = null) {
 
 function ApiState({ state, children }) {
   if (state.loading) return <p role="status">Загрузка…</p>
-  if (state.error) return <div role="alert"><p>Не удалось загрузить данные</p><button className="text-button" onClick={state.retry}>Попробовать снова</button></div>
+  if (state.error) return <div className="api-error">
+    <div className="api-error-panel" role="alert">
+      <p>Не удалось загрузить данные</p>
+      <button type="button" className="api-error-retry" onClick={state.retry}>Попробовать снова</button>
+    </div>
+  </div>
   return children(state.data)
 }
 
