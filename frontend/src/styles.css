@@ -272,3 +272,113 @@ code { font-family: var(--font-mono); }
 .course-diagram-general .diagram-branch,
 .course-diagram-general i:nth-of-type(3) { display: none; }
 .step-blocks p { max-width: 78ch; }
+
+/* Жидкое стекло: рассеянный свет под неподвижными парящими поверхностями */
+.workbench {
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 77% 12%, rgb(48 137 162 / 23%), transparent 48%),
+    radial-gradient(ellipse at 32% 86%, rgb(43 77 125 / 25%), transparent 54%),
+    radial-gradient(ellipse at 95% 93%, rgb(62 137 113 / 10%), transparent 38%),
+    #090d12;
+}
+.titlebar, .sidebar {
+  background: var(--glass-shell);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(135%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(135%);
+}
+.titlebar {
+  position: relative;
+  z-index: 3;
+  box-shadow: 0 8px 26px -16px #000, inset 0 1px 0 var(--glass-highlight);
+}
+.sidebar { box-shadow: 8px 0 28px -22px #000, inset 1px 0 0 rgb(255 255 255 / 3%); }
+.brand > svg { background: var(--glass-reflection), var(--glass-control); box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 10px #0003; }
+.course, .practice-panel, .repository-workspace {
+  border-color: var(--glass-border);
+  border-radius: var(--glass-radius);
+  background: var(--glass-reflection), var(--glass-surface);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(135%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(135%);
+}
+.repository-workspace { background: var(--glass-reflection), rgb(12 22 32 / 48%); }
+.course { transition: transform var(--motion-surface) ease, box-shadow var(--motion-surface) ease, border-color var(--motion-surface) ease; }
+.course-diagram {
+  background: radial-gradient(ellipse at 50% 100%, rgb(72 204 224 / 8%), transparent 75%), rgb(6 16 25 / 32%);
+  border-color: rgb(169 210 235 / 10%);
+  box-shadow: inset 0 1px 12px rgb(0 0 0 / 12%);
+}
+.course-diagram i { box-shadow: 0 2px 8px rgb(72 204 224 / 20%); }
+.repo-panel, .step-description, .directory-info {
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-reflection), rgb(19 33 46 / 68%);
+  box-shadow: 0 10px 20px -14px #000, inset 0 1px 0 rgb(221 245 255 / 10%);
+}
+.step-description {
+  border-left: 3px solid var(--success);
+  background: linear-gradient(125deg, rgb(98 213 161 / 7%), transparent 55%), var(--glass-reflection), rgb(18 32 42 / 78%);
+}
+.repo-panel header {
+  background: linear-gradient(180deg, rgb(221 245 255 / 5%), transparent), rgb(26 43 57 / 42%);
+  border-color: rgb(169 210 235 / 10%);
+}
+.directory-info { background: var(--glass-reflection), rgb(15 28 40 / 52%); }
+.practice-step, .course-tabs button, .nav-item, .icon-button, .step-description-toggle {
+  transition: background-color var(--motion-surface) ease, border-color var(--motion-surface) ease, box-shadow var(--motion-surface) ease, transform var(--motion-surface) ease;
+}
+.practice-step {
+  border-color: rgb(169 210 235 / 12%);
+  border-radius: 10px;
+  background: var(--glass-reflection), rgb(17 30 42 / 65%);
+  box-shadow: 0 4px 10px -6px #000, inset 0 1px 0 rgb(221 245 255 / 6%);
+}
+.practice-step[aria-pressed="true"] {
+  border-color: rgb(72 204 224 / 65%);
+  background: linear-gradient(125deg, rgb(72 204 224 / 17%), rgb(72 204 224 / 4%)), rgb(18 36 48 / 82%);
+  box-shadow: inset 3px 0 var(--accent), inset 0 1px 0 rgb(221 245 255 / 14%), 0 6px 14px -8px #000;
+}
+.practice-step-number { box-shadow: inset 0 1px 0 rgb(255 255 255 / 40%), 0 3px 9px rgb(0 0 0 / 25%); }
+.course-tabs { gap: 6px; border-color: transparent; }
+.course-tabs button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgb(18 30 42 / 25%);
+}
+.course-tabs button[aria-selected="true"] {
+  border-color: var(--glass-border);
+  color: var(--accent);
+  background: var(--glass-reflection), var(--glass-control);
+  box-shadow: 0 6px 14px -8px #000, inset 0 1px 0 var(--glass-highlight), inset 0 -2px 0 rgb(72 204 224 / 65%);
+}
+.nav-item.selected {
+  background: var(--glass-reflection), rgb(72 204 224 / 12%);
+  box-shadow: inset 2px 0 var(--accent), inset 0 1px 0 rgb(221 245 255 / 8%), 0 4px 12px -8px #000;
+}
+.badge, .catalog-count { border-color: var(--glass-border); background: rgb(13 25 36 / 48%); box-shadow: inset 0 1px 0 rgb(221 245 255 / 6%); }
+.ref-label { background: rgb(16 29 40 / 96%); box-shadow: 0 3px 8px #0005, inset 0 1px 0 rgb(221 245 255 / 10%); }
+.step-description-content pre { background: rgb(7 17 26 / 54%); border-color: rgb(169 210 235 / 12%); box-shadow: inset 0 2px 6px #0002; }
+@media (hover: hover) and (pointer: fine) {
+  .course:hover, .course:focus-within { transform: translateY(-3px); border-color: rgb(169 210 235 / 34%); box-shadow: var(--glass-shadow-raised); }
+  .practice-step:hover { transform: translateY(-1px); border-color: rgb(72 204 224 / 48%); box-shadow: 0 7px 14px -8px #000, inset 0 1px 0 var(--glass-highlight); }
+  .icon-button:hover, .step-description-toggle:hover { background: var(--glass-control); box-shadow: inset 0 1px 0 var(--glass-highlight); }
+}
+@media (max-width: 480px) {
+  .sidebar { background: rgb(12 21 31 / 94%); }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .titlebar, .sidebar, .course, .practice-panel, .repository-workspace { background: var(--glass-reflection), #13202c; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .titlebar, .sidebar, .course, .practice-panel, .repository-workspace, .repo-panel, .step-description, .directory-info {
+    background: #13202c;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .course, .practice-step, .course-tabs button, .nav-item, .icon-button, .step-description-toggle { transition: none; }
+  .course:hover, .course:focus-within, .practice-step:hover { transform: none; }
+}

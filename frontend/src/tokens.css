@@ -41,3 +41,17 @@
   --branch-green: #53d6a0;
   --branch-pink: #ed8ecb;
 }
+
+:root {
+  --glass-surface: rgb(18 30 42 / 68%);
+  --glass-shell: rgb(12 21 31 / 72%);
+  --glass-control: rgb(32 50 65 / 58%);
+  --glass-border: rgb(169 210 235 / 18%);
+  --glass-highlight: rgb(221 245 255 / 15%);
+  --glass-reflection: linear-gradient(135deg, rgb(221 245 255 / 9%), transparent 42%, rgb(72 204 224 / 3%) 78%, rgb(221 245 255 / 5%));
+  --glass-shadow: 0 18px 38px -18px rgb(0 0 0 / 78%), 0 5px 12px -7px rgb(0 0 0 / 65%), inset 0 1px 0 var(--glass-highlight), inset 0 -1px 0 rgb(255 255 255 / 3%);
+  --glass-shadow-raised: 0 26px 44px -20px rgb(0 0 0 / 85%), 0 8px 18px -9px rgb(0 0 0 / 75%), inset 0 1px 0 rgb(221 245 255 / 24%);
+  --glass-blur: 22px;
+  --glass-radius: 16px;
+  --motion-surface: 180ms;
+}
