@@ -112,7 +112,7 @@ code { font-family: var(--font-mono); }
 .step-blocks { display: grid; gap: 10px; }
 .step-blocks p { white-space: pre-wrap; }
 .step-blocks pre { margin: 0; max-width: 100%; overflow-x: auto; }
-.step-description { min-width: 0; flex-shrink: 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-base); }
+.step-description { min-width: 0; flex-shrink: 0; padding: 12px; border: 1px solid var(--success); border-radius: var(--radius-sm); background: var(--bg-base); }
 .step-description-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; margin-bottom: 8px; }
 .step-description-heading h2 { display: flex; align-items: center; gap: 9px; min-width: 0; margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .step-description-heading h2 svg { flex-shrink: 0; color: var(--accent); }
