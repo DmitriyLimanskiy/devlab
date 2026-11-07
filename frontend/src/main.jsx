@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { FlaskConical, PanelLeftClose, PanelLeftOpen, BookOpen, ArrowRight } from 'lucide-react'
+import { FlaskConical, PanelLeftClose, PanelLeftOpen, BookOpen, ArrowRight, GitBranch } from 'lucide-react'
 import { GitCourse } from './courses/git/GitCourse'
 import { parseGitCourse } from './courses/git/courseSteps'
 import { IconButton, Badge } from './shared/ui'
@@ -99,7 +99,8 @@ function Catalog() {
     </header>
     <ApiState state={state}>{catalog => catalog.length ? <ul className="course-list">
       {catalog.map(course => <li className="course" key={course.id}>
-        <div className="course-card-heading"><BookOpen className="course-icon" size={20} /><Badge>{courseStatusLabels[course.status]}</Badge></div>
+        <div className="course-card-heading"><GitBranch className="course-icon" size={22} /><Badge>{courseStatusLabels[course.status]}</Badge></div>
+        <div className={`course-diagram ${course.id.startsWith('git-') ? '' : 'course-diagram-general'}`} aria-hidden="true"><span className="diagram-track diagram-main" /><span className="diagram-track diagram-branch" /><i /><i /><i /><i /><i /></div>
         <div className="course-card-content"><h2>{course.title}</h2><p>{course.description.replace(/\.+\s*$/, '')}</p></div>
         {course.id.startsWith('git-') && <a className="course-open" href={gitCoursePage(course.id)} aria-label={`Открыть курс ${course.title}`}>Открыть курс<ArrowRight size={16} /></a>}
       </li>)}
@@ -107,8 +108,12 @@ function Catalog() {
   </section>
 }
 
+function TerminalMark() {
+  return <span className="sidebar-terminal" aria-hidden="true">&gt;_</span>
+}
+
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 480px)').matches)
   const requestedPath = window.location.pathname.replace(/\/$/, '') || '/'
   const path = requestedPath === '/' ? pages.catalog : requestedPath
   useEffect(() => {
@@ -117,7 +122,7 @@ function App() {
   const page = navigation.find(item => item.path === path)
   useEffect(() => { document.title = `${page?.label ?? 'Страница не найдена'} — DevLab` }, [page])
   return <div className={`workbench ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="DevLab — каталог курсов"><FlaskConical size={21} /><span>Dev<span className="accent">Lab</span></span></a></header>
+    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="DevLab — каталог курсов"><FlaskConical size={21} /><span>Dev<span className="accent">Lab</span></span></a><span className="titlebar-caption">Практика на настоящих инструментах</span></header>
     <aside className="sidebar">
       <div className="sidebar-header">
         {sidebarOpen && <span>Рабочее пространство</span>}
@@ -128,6 +133,7 @@ function App() {
       <nav id="workspace-navigation" aria-label="Рабочее пространство">
         {navigation.map(({ path: href, label, icon: Icon }) => <a key={href} href={href} className={`nav-item ${path === href ? 'selected' : ''}`} aria-current={path === href ? 'page' : undefined} aria-label={label} title={sidebarOpen ? undefined : label}><Icon size={18} />{sidebarOpen && <span>{label}</span>}</a>)}
       </nav>
+      {sidebarOpen && <div className="sidebar-note"><TerminalMark /><p>Изучай инструмент<br />через практику</p></div>}
     </aside>
     <main className="editor">
       <div className={`canvas ${path === pages.git ? 'canvas-git' : path === pages.catalog ? 'canvas-catalog' : ''}`}>

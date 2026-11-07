@@ -10,3 +10,5 @@ node_modules/
 dist/
 sources
 .ruff_cache
+.agents
+frontend/.agents
