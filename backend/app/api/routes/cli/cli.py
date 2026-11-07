@@ -8,10 +8,17 @@ from app.api.schemas.cli.cli import (
     CliConnectRes,
     CliPresenceReq,
     CliPresenceRes,
+    CliResetPracticeReq,
+    CliResetPracticeRes,
 )
 from app.api.schemas.cli.snapshot import SnapshotReq, SnapshotRes
 from app.db.models.courses.course import Course
-from app.db.models.practice.practice import PracticeSession
+from app.db.models.practice.practice import PracticeSession, PracticeSnapshot
+from app.db.models.practice.repository import (
+    GraphEvent,
+    RepositoryCommit,
+    SnapshotReceipt,
+)
 from app.db.session import get_session
 from app.services.cli.authorization import CliAuthorization
 from app.services.cli.cli_presence import presence
@@ -20,15 +27,15 @@ from app.services.practice.practice_events import events
 from app.services.practice.repository_state import store_state
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/api/v1", tags=["cli"])
+router = APIRouter(prefix="/api/v1/cli", tags=["cli"])
 
 bearer = HTTPBearer(auto_error=False)
 
 
-@router.post("/cli-connect", response_model=CliConnectRes)
+@router.post("/connect", response_model=CliConnectRes)
 async def cli_connect(
     connect: CliConnectReq, db: Annotated[AsyncSession, Depends(get_session)]
 ):
@@ -66,7 +73,7 @@ async def cli_connect(
     )
 
 
-@router.post("/cli-send-snapshot", response_model=SnapshotRes)
+@router.post("/send-snapshot", response_model=SnapshotRes)
 async def cli_send_state(
     snapshot: SnapshotReq,
     db: Annotated[AsyncSession, Depends(get_session)],
@@ -81,9 +88,12 @@ async def cli_send_state(
     )
 
     receipt, changed = await store_state(db, snapshot)
+
     await db.commit()
+
     if changed:
         events.publish(snapshot.session_id)
+
     return SnapshotRes(
         id=receipt.id,
         session_id=snapshot.session_id,
@@ -92,7 +102,7 @@ async def cli_send_state(
     )
 
 
-@router.post("/cli-heartbeat", response_model=CliPresenceRes)
+@router.post("/heartbeat", response_model=CliPresenceRes)
 async def cli_heartbeat(
     request: CliPresenceReq,
     db: Annotated[AsyncSession, Depends(get_session)],
@@ -102,15 +112,18 @@ async def cli_heartbeat(
     await CliAuthorization.authorized_session(
         db, request.session_id, request.generation, credentials
     )
+
     await db.commit()
+
     if presence.touch(request.session_id, request.generation):
         events.publish(request.session_id)
+
     return CliPresenceRes(
         session_id=request.session_id, generation=request.generation, connected=True
     )
 
 
-@router.post("/cli-disconnect", response_model=CliPresenceRes)
+@router.post("/disconnect", response_model=CliPresenceRes)
 async def cli_disconnect(
     request: CliPresenceReq,
     db: Annotated[AsyncSession, Depends(get_session)],
@@ -120,9 +133,38 @@ async def cli_disconnect(
     await CliAuthorization.authorized_session(
         db, request.session_id, request.generation, credentials
     )
+
     await db.commit()
+
     if presence.remove(request.session_id, request.generation):
         events.publish(request.session_id)
     return CliPresenceRes(
         session_id=request.session_id, generation=request.generation, connected=False
+    )
+
+
+@router.delete("/reset-practice", response_model=CliResetPracticeRes)
+async def reset_practice(
+    request: CliResetPracticeReq,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+):
+    await CliAuthorization.authorized_session(
+        db, request.session_id, request.generation, credentials
+    )
+
+    for table in [
+        PracticeSnapshot,
+        RepositoryCommit,
+        GraphEvent,
+        SnapshotReceipt,
+    ]:
+        await db.execute(delete(table).where(table.session_id == request.session_id))
+
+    await db.commit()
+
+    events.publish(request.session_id)
+
+    return CliResetPracticeRes(
+        session_id=request.session_id, generation=request.generation, reset=True
     )

@@ -93,7 +93,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 async with connect(ws_url) as ws:
                     self.assertEqual(json.loads(await ws.recv())["type"], "ready")
                     connection = await request(
-                        "/api/v1/cli-connect", {"course_slug": "git-sandbox"}
+                        "/api/v1/cli/connect", {"course_slug": "git-sandbox"}
                     )
                     self.assertEqual(
                         json.loads(await ws.recv())["type"], "state_changed"
@@ -102,12 +102,12 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                         "session_id": str(course.session_id),
                         "generation": connection["generation"],
                     }
-                    await request("/api/v1/cli-heartbeat", heartbeat, connection["key"])
+                    await request("/api/v1/cli/heartbeat", heartbeat, connection["key"])
                     self.assertEqual(
                         json.loads(await ws.recv())["type"], "state_changed"
                     )
                     self.assertTrue((await request(path))["cli_connected"])
-                    await request("/api/v1/cli-heartbeat", heartbeat, connection["key"])
+                    await request("/api/v1/cli/heartbeat", heartbeat, connection["key"])
                     body = dict(
                         schema_version=1,
                         session_id=str(course.session_id),
@@ -115,14 +115,14 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                         version=1,
                         state={"kind": "no_repository", "path": "/tmp/devlab-test"},
                     )
-                    await request("/api/v1/cli-send-snapshot", body, connection["key"])
+                    await request("/api/v1/cli/send-snapshot", body, connection["key"])
                     self.assertEqual(
                         json.loads(await ws.recv())["type"], "state_changed"
                     )
                     saved = await request(path)
                     self.assertEqual(saved["snapshot"]["state"], body["state"])
                     self.assertNotIn("key_hash", saved)
-                    await request("/api/v1/cli-send-snapshot", body, connection["key"])
+                    await request("/api/v1/cli/send-snapshot", body, connection["key"])
                     with self.assertRaises(TimeoutError):
                         await asyncio.wait_for(ws.recv(), 0.1)
                     self.assertEqual(
@@ -157,7 +157,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     (repo / "untracked").write_text("new")
                     body["state"] = read_state(repo)
                 body["version"] = 2
-                await request("/api/v1/cli-send-snapshot", body, connection["key"])
+                await request("/api/v1/cli/send-snapshot", body, connection["key"])
                 async with connect(ws_url) as ws:
                     self.assertEqual(json.loads(await ws.recv())["type"], "ready")
                     saved = (await request(path))["snapshot"]
@@ -174,7 +174,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                         },
                     )
                 # После ротации сохраняется старый снимок с явным поколением
-                await request("/api/v1/cli-connect", {"course_slug": "git-sandbox"})
+                await request("/api/v1/cli/connect", {"course_slug": "git-sandbox"})
                 data = await request(path)
                 self.assertGreater(data["generation"], data["snapshot"]["generation"])
             finally:
@@ -327,6 +327,85 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
             self.assertEqual(presence.remaining(course.session_id, newer.generation), 0)
         finally:
             presence.remove(course.session_id)
+
+    async def test_cli_client_resets_database_session(self):
+        """Проверить реальный DELETE от CLI с авторизацией и очисткой связанных таблиц"""
+        from app.db.models.practice.practice import PracticeSession, PracticeSnapshot
+        from app.db.models.practice.repository import (
+            GraphEvent,
+            RepositoryCommit,
+            SnapshotReceipt,
+        )
+        from sqlalchemy import func, select
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
+        from devlab.cli.api import ApiClient, ApiError, Connection
+
+        await self.prepare_courses()
+        course = await self.request()
+
+        async def dependency():
+            """Предоставить HTTP-ручкам изолированную тестовую сессию БД"""
+            async with self.factory() as db:
+                yield db
+
+        app.dependency_overrides[get_session] = dependency
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+        server = uvicorn.Server(uvicorn.Config(app, log_level="error", lifespan="off"))
+        task = asyncio.create_task(server.serve(sockets=[listener]))
+        try:
+            for _ in range(200):
+                if server.started:
+                    break
+                await asyncio.sleep(0.01)
+            self.assertTrue(server.started)
+            client = ApiClient(f"http://127.0.0.1:{port}")
+            connection = await asyncio.to_thread(client.connect, "git-sandbox")
+            sha = "a" * 40
+            state = {
+                "kind": "repository",
+                "path": "/repo",
+                "head": sha,
+                "branch": "main",
+                "head_kind": "branch",
+                "files": [],
+                "commits": [{"id": sha, "parents": []}],
+                "refs": [f"refs/heads/main {sha}"],
+                "operations": [],
+                "history_limit": 200,
+            }
+            await asyncio.to_thread(client.send_snapshot, connection, state, 1)
+            models = (PracticeSnapshot, RepositoryCommit, GraphEvent, SnapshotReceipt)
+            async with self.factory() as db:
+                for model in models:
+                    self.assertEqual(
+                        await db.scalar(select(func.count()).select_from(model)), 1
+                    )
+            with self.assertRaises(ApiError):
+                await asyncio.to_thread(
+                    client.reset_practice,
+                    Connection(
+                        connection.session_id, connection.generation, "invalid-key"
+                    ),
+                )
+            async with self.factory() as db:
+                self.assertEqual(
+                    await db.scalar(select(func.count()).select_from(PracticeSnapshot)),
+                    1,
+                )
+            await asyncio.to_thread(client.reset_practice, connection)
+            async with self.factory() as db:
+                for model in models:
+                    self.assertEqual(
+                        await db.scalar(select(func.count()).select_from(model)), 0
+                    )
+                self.assertIsNotNone(await db.get(PracticeSession, course.session_id))
+        finally:
+            server.should_exit = True
+            await task
+            app.dependency_overrides.pop(get_session, None)
 
     async def test_missing_session_state(self):
         """Проверить ответ при запросе состояния неизвестной сессии"""

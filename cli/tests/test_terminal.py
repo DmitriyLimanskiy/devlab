@@ -3,7 +3,6 @@ import os
 import pty
 import select
 import json
-import re
 import signal
 import struct
 import subprocess
@@ -38,10 +37,8 @@ class TerminalTest(unittest.TestCase):
         )
         self.read_until("Папка проекта".encode())
         os.write(self.master, self.project.name.encode() + b"\n")
-        startup = self.read_until(b" > ")
-        self.snapshot = Path(
-            re.search(rb"(/[^\r\n]+/state.json)", startup).group(1).decode()
-        )
+        self.read_until(b" > ")
+        self.snapshot = Path(self.project.name) / "state.json"
 
     def tearDown(self):
         """Завершить тестовый CLI и закрыть дескрипторы PTY"""
@@ -85,7 +82,7 @@ class TerminalTest(unittest.TestCase):
         os.write(self.master, b"\x03")
         self.read_until(b" > ")
         os.write(self.master, b"exit 7\n")
-        self.read_until("Сессия DevLab завершена".encode())
+        self.read_until("Хорошего дня".encode())
         self.assertEqual(self.process.wait(timeout=5), 7)
         self.assertTrue(self.snapshot.exists())
         self.assert_terminal_restored()
@@ -93,7 +90,7 @@ class TerminalTest(unittest.TestCase):
     def test_eof_exits_and_restores_terminal(self):
         """Проверить выход по Ctrl+D и восстановление терминала"""
         os.write(self.master, b"\x04")
-        self.read_until("Сессия DevLab завершена".encode())
+        self.read_until("Хорошего дня".encode())
         self.assertEqual(self.process.wait(timeout=5), 0)
         self.assert_terminal_restored()
 

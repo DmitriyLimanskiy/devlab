@@ -32,7 +32,5 @@ def choose_connection(client):
         except ApiError as error:
             print(f"  {error}")
             continue
-        print(
-            f"  Подключён курс {course['title']}. Сессия: {connection.session_id}, поколение: {connection.generation}"
-        )
+        print(f"  Подключён курс {course['title']}")
         return connection

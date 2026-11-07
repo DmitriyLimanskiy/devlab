@@ -6,26 +6,28 @@ import tempfile
 from pathlib import Path
 
 from devlab.cli.api import ApiClient, ApiError
+from devlab.cli.commands import CliCommands
 from devlab.cli.connection import choose_connection
 from devlab.practice.project import ensure_state_ignored
 
 
 def main() -> int:
     """Подготовить подключение и папку проекта, затем запустить интерактивный bash"""
+    command_status = CliCommands.dispatch(sys.argv[1:])
+    if command_status is not None:
+        return command_status
+
     launch_folder = Path.cwd()
-    if sys.argv[1:]:
-        print(
-            "Запуск: devlab. Выход из оболочки: exit или Ctrl+D",
-            file=sys.stderr,
-        )
-        return 2
+
     if sys.platform != "darwin":
         print("Версия для macOS", file=sys.stderr)
         return 1
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         print("Запустите devlab в интерактивном терминале", file=sys.stderr)
         return 1
+
     bash = shutil.which("bash")
+
     if bash is None:
         print("Не найден bash в PATH", file=sys.stderr)
         return 1
@@ -98,10 +100,6 @@ def main() -> int:
                         file=sys.stderr,
                     )
                     return 1
-                if not overwrite:
-                    print(
-                        "  Текущий state.json сохранён. Новые изменения будут записываться"
-                    )
             # Создаём файл до запуска bash, чтобы сразу проверить право записи
             ensure_state_ignored(folder)
             if overwrite and not snapshot.exists():
@@ -113,7 +111,6 @@ def main() -> int:
         except (OSError, ValueError, AttributeError) as error:
             print(f"Не удалось подготовить файлы проекта: {error}", file=sys.stderr)
             return 1
-        print(f"  Локальный снимок: {snapshot}\n", flush=True)
         rc.write_text(
             f"PS1='{prompt}'\nPS2='... > '\nunset HISTFILE\n", encoding="utf-8"
         )
@@ -122,7 +119,6 @@ def main() -> int:
             from devlab.practice.sync import SnapshotSender
 
             sender = SnapshotSender(client, connection, folder)
-            print("  Синхронизация будет работать в фоне\n", flush=True)
         try:
             status = run_bash(bash, str(rc), folder, snapshot, overwrite, sender=sender)
         except OSError as error:
@@ -131,5 +127,6 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-    print("\n  Сессия DevLab завершена")
+
+    print("\n  Сессия завершена...\n  Хорошего дня!")
     return status

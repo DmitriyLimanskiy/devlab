@@ -53,7 +53,7 @@ class ApiClient:
         self.timeout = timeout
         self.opener = build_opener(NoRedirects())
 
-    def request(self, path, payload=None, key=None):
+    def request(self, path, payload=None, key=None, *, method=None):
         """Выполнить JSON-запрос с ограничением ответа и безопасной обработкой ошибок"""
         headers = {"Accept": "application/json"}
         data = None
@@ -63,7 +63,10 @@ class ApiClient:
         if key is not None:
             headers["Authorization"] = "Bearer " + key
         request = Request(
-            self.server_url + "/api/v1" + path, data=data, headers=headers
+            self.server_url + "/api/v1" + path,
+            data=data,
+            headers=headers,
+            method=method,
         )
         try:
             with self.opener.open(request, timeout=self.timeout) as response:
@@ -73,7 +76,7 @@ class ApiClient:
                 return json.loads(body)
         except HTTPError as error:
             error.close()
-            if error.code == 404 and path == "/cli-connect":
+            if error.code == 404 and path == "/cli/connect":
                 raise ApiError(
                     "Нет активной сессии. Откройте выбранный курс в браузере и повторите подключение"
                 ) from None
@@ -113,7 +116,7 @@ class ApiClient:
 
     def connect(self, slug):
         """Получить и проверить ключ и поколение активной сессии курса"""
-        data = self.request("/cli-connect", {"course_slug": slug})
+        data = self.request("/cli/connect", {"course_slug": slug})
         try:
             session_id = str(UUID(data["session_id"]))
             generation, key = data["generation"], data["key"]
@@ -137,7 +140,7 @@ class ApiClient:
             "version": version,
             "state": state,
         }
-        data = self.request("/cli-send-snapshot", payload, connection.key)
+        data = self.request("/cli/send-snapshot", payload, connection.key)
         if (
             not isinstance(data, dict)
             or data.get("session_id") != connection.session_id
@@ -155,7 +158,7 @@ class ApiClient:
     def presence(self, connection, disconnect=False):
         """Передать heartbeat или отключение и проверить подтверждение сервера"""
         data = self.request(
-            "/cli-disconnect" if disconnect else "/cli-heartbeat",
+            "/cli/disconnect" if disconnect else "/cli/heartbeat",
             {"session_id": connection.session_id, "generation": connection.generation},
             connection.key,
         )
@@ -167,3 +170,26 @@ class ApiClient:
             or data.get("connected") is not (not disconnect)
         ):
             raise ApiError("Сервер не подтвердил присутствие CLI")
+
+    def reset_practice(self, connection):
+        """Очистить историю сессии и проверить подтверждение сервера"""
+        payload = {
+            "session_id": connection.session_id,
+            "generation": connection.generation,
+        }
+
+        data = self.request(
+            "/cli/reset-practice",
+            payload,
+            connection.key,
+            method="DELETE",
+        )
+
+        if (
+            not isinstance(data, dict)
+            or data.get("session_id") != connection.session_id
+            or type(data.get("generation")) is not int
+            or data["generation"] != connection.generation
+            or data.get("reset") is not True
+        ):
+            raise ApiError("Сервер не подтвердил сброс истории")
