@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { GitBranch, GitCommitHorizontal, Folder, Layers, CircleDashed, ChevronRight, ChevronDown, Maximize2, Minimize2, Minus, Plus, LocateFixed } from 'lucide-react'
+import { useViewState, useRememberedScroll } from '../../courses/git/useViewState'
 import { commitCount, repositoryGraph, graphRefs, graphConnections } from './practiceState'
 
 const statuses = { M: 'Изменён', A: 'Добавлен', D: 'Удалён', R: 'Переименован', C: 'Скопирован', U: 'Конфликт', '?': 'Не отслеживается', '!': 'Игнорируется', T: 'Изменён тип', X: 'Неизвестный статус' }
@@ -10,11 +11,12 @@ function Panel({ icon: Icon, title, detail, actions, type, children }) {
   return <section className={`repo-panel repo-panel-${type}`}><header><h2><Icon size={17} />{title}</h2><div className="repo-panel-actions">{detail && <span>{detail}</span>}{actions}</div></header>{children}</section>
 }
 // Показать граф коммитов, refs и признаки ограниченной истории
-function History({ state, previous, history }) {
+function History({ state, previous, history, viewKey }) {
   const graph = useMemo(() => repositoryGraph(state, history), [state, history])
   const scrollRef = useRef(null)
-  const [zoom, setZoom] = useState(1)
-  const [fit, setFit] = useState(false)
+  const [zoom, setZoom] = useViewState(`${viewKey}:zoom`, 1)
+  const [fit, setFit] = useViewState(`${viewKey}:fit`, false)
+  useRememberedScroll(`${viewKey}:graphScroll`, scrollRef, graph.nodes.length > 0)
   const [viewport, setViewport] = useState({ width: 0, height: 0 })
   useLayoutEffect(() => {
     const element = scrollRef.current
@@ -81,10 +83,12 @@ function History({ state, previous, history }) {
   </>
 }
 // Показать статусы файлов выбранного столбца с подсветкой изменений
-function Files({ files, column, previous }) {
+function Files({ files, column, previous, viewKey, filesOpen }) {
   const items = files.filter(f => f.conflict || (f[column] !== ' ' && f[column] !== '!' && (column !== 'index' || f[column] !== '?')))
+  const listRef = useRef(null)
+  useRememberedScroll(`${viewKey}:${column}:scroll`, listRef, filesOpen && items.length > 0)
   if (!items.length) return <Empty>{column === 'index' ? 'Подготовленных изменений нет' : 'Рабочая папка без изменений'}</Empty>
-  return <ul className="git-files">{items.map(file => {
+  return <ul ref={listRef} className="git-files">{items.map(file => {
     const old = previous?.files.find(f => f.path === file.path)
     const changed = previous && (!old || old[column] !== file[column] || old.conflict !== file.conflict || old.original_path !== file.original_path)
     return <li key={file.path} className={`${file.conflict ? 'file-conflict' : ''} ${changed ? 'git-change' : ''}`}>
@@ -94,7 +98,7 @@ function Files({ files, column, previous }) {
   })}</ul>
 }
 // Показать рабочую папку и индекс из отдельного оперативного канала
-function WorkingFiles({ worktree }) {
+function WorkingFiles({ worktree, viewKey, filesOpen }) {
   const state = worktree?.data?.state
   const memory = useRef(null)
   const previous = memory.current?.kind === 'repository' && memory.current.path === state?.path ? memory.current : null
@@ -104,16 +108,18 @@ function WorkingFiles({ worktree }) {
   return <>
     {worktree?.error && <p className="snapshot-warning">Не удалось обновить файлы · показаны последние полученные данные</p>}
     <div className="git-file-flow">
-      <Panel icon={Folder} title="Рабочая папка" detail="Working directory" type="files">{repository ? <Files files={state.files} column="worktree" previous={previous} /> : <Empty>{empty}</Empty>}</Panel>
+      <Panel icon={Folder} title="Рабочая папка" detail="Working directory" type="files">{repository ? <Files files={state.files} column="worktree" previous={previous} viewKey={viewKey} filesOpen={filesOpen} /> : <Empty>{empty}</Empty>}</Panel>
       <ChevronRight className="staging-chevron" size={28} strokeWidth={1.5} aria-hidden="true" />
-      <Panel icon={Layers} title="Индекс" detail="Staging area" type="index">{repository ? <Files files={state.files} column="index" previous={previous} /> : <Empty>{empty}</Empty>}</Panel>
+      <Panel icon={Layers} title="Индекс" detail="Staging area" type="index">{repository ? <Files files={state.files} column="index" previous={previous} viewKey={viewKey} filesOpen={filesOpen} /> : <Empty>{empty}</Empty>}</Panel>
     </div>
   </>
 }
 
 // Объединить граф и файловые панели с анимацией изменений снимка
-export function GitRepository({ snapshot, history, worktree, graphExpanded, onToggleGraph }) {
+export function GitRepository({ sessionId, snapshot, history, worktree, graphExpanded, onToggleGraph }) {
+  const [filesOpen, setFilesOpen] = useViewState(`${sessionId}:filesOpen`, true)
   const current = snapshot?.state
+  const viewKey = `${sessionId}:${current?.path ?? ""}`
   const memory = useRef({ snapshot: null, previous: null })
   if (memory.current.snapshot !== snapshot) {
     const old = memory.current.snapshot?.state
@@ -133,15 +139,15 @@ export function GitRepository({ snapshot, history, worktree, graphExpanded, onTo
   const empty = !current ? 'Запусти devlab и выбери папку' : current.kind === 'no_repository' ? 'В выбранной папке нет репозитория Git · выполни git init' : 'Не удалось прочитать Git · ожидаем обновление'
   return <div ref={root} className="git-repository">
     {repository && <div className="git-summary"><span><GitBranch size={15} />{current.head_kind === 'detached' ? `Detached HEAD · ${current.head.slice(0, 8)}` : current.branch}</span><span>{current.head_kind === 'unborn' ? 'Ветка без коммитов' : commitCount(current.commits.length)}</span>{current.operations.map(operation => <span className="operation" key={operation}>{operation}</span>)}</div>}
-    <Panel icon={GitCommitHorizontal} title="История репозитория" detail="Коммиты, ветки и HEAD" type="history" actions={<button type="button" className="repository-action" onClick={onToggleGraph} aria-pressed={graphExpanded} title={graphExpanded ? 'Вернуть панели (Esc)' : 'Развернуть граф на рабочую область'}>{graphExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}{graphExpanded ? 'Вернуть панели' : 'Развернуть граф'}</button>}>{repository ? <History key={`${snapshot.session_id}:${current.path}`} state={current} previous={previous} history={history} /> : <Empty>{empty}</Empty>}</Panel>
-    <details className="worktree-drawer" open>
+    <Panel icon={GitCommitHorizontal} title="История репозитория" detail="Коммиты, ветки и HEAD" type="history" actions={<button type="button" className="repository-action" onClick={onToggleGraph} aria-pressed={graphExpanded} title={graphExpanded ? 'Вернуть панели (Esc)' : 'Развернуть граф на рабочую область'}>{graphExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}{graphExpanded ? 'Вернуть панели' : 'Развернуть граф'}</button>}>{repository ? <History key={`${snapshot.session_id}:${current.path}`} state={current} previous={previous} history={history} viewKey={viewKey} /> : <Empty>{empty}</Empty>}</Panel>
+    <details className="worktree-drawer" open={filesOpen} onToggle={event => setFilesOpen(event.currentTarget.open)}>
       <summary>
         <span><Folder size={16} />Файлы и индекс</span>
         <span className="worktree-summary">{worktree?.error ? 'Не удалось обновить файлы' : files ? `Изменений: ${files.length}` : 'Ожидаем данные CLI'}</span>
         {conflicts > 0 && <span className="operation">Конфликтов: {conflicts}</span>}
         <ChevronDown size={16} className="drawer-chevron" aria-hidden="true" />
       </summary>
-      <WorkingFiles worktree={worktree} />
+      <WorkingFiles worktree={worktree} viewKey={viewKey} filesOpen={filesOpen} />
     </details>
   </div>
 }

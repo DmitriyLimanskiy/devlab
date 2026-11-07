@@ -6,6 +6,7 @@ export function parseCourseSteps(data) {
     typeof step.slug !== 'string' || typeof step.title !== 'string' ||
     !Number.isInteger(step.position) || step.position < 1 ||
     !step.content || typeof step.content !== 'object' || Array.isArray(step.content) ||
+    (step.content.markdown !== undefined && typeof step.content.markdown !== 'string') ||
     (step.content.blocks !== undefined && (!Array.isArray(step.content.blocks) ||
       step.content.blocks.some(block => !block || typeof block.type !== 'string' ||
         (['text', 'code'].includes(block.type) && typeof block.text !== 'string'))))

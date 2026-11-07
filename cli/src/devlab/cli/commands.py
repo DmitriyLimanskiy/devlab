@@ -43,7 +43,7 @@ class CliCommands:
         try:
             if path := os.environ.get("DEVLAB_CONTROL_SOCKET"):
                 LocalControl.request_reset(path)
-                print("\n  История практики очищена\n  CLI остаётся подключён\n")
+                print("\n  История практики очищена\n")
                 return 0
             client = ApiClient(
                 os.environ.get("DEVLAB_SERVER_URL", "http://127.0.0.1:8080")
