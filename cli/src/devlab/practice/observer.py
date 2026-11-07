@@ -57,31 +57,42 @@ class Observer:
         self.on_state = on_state
         self.on_worktree = on_worktree
         self.stop = threading.Event()
+        self.lock = threading.RLock()
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.state = None
         self.version = 0
         self.preserve_existing = False
         self.send_pending = True
 
+    def read_state(self):
+        """Прочитать актуальный Git без служебного снимка и каталога очереди"""
+        state = stable_state(self.folder)
+        if state["kind"] == "repository":
+            relative = os.path.relpath(self.snapshot, state["path"])
+            internal = (
+                (os.path.relpath(self.internal_dir, state["path"]) + "/")
+                if self.internal_dir
+                else None
+            )
+            state["files"] = [
+                item
+                for item in state["files"]
+                if item["path"] != relative
+                and not (internal and item["path"].startswith(internal))
+            ]
+        return state
+
     def refresh(self, command_status=None):
-        """Обновить локальный снимок и при необходимости передать состояние отправителям"""
+        """Согласовать обновление снимка с переключением поколения при сбросе"""
+        with self.lock:
+            self._refresh(command_status)
+
+    def _refresh(self, command_status=None):
+        """Обновить локальный снимок и передать изменившееся состояние отправителям"""
         if command_status is not None:
             self.send_pending = True
         try:
-            state = stable_state(self.folder)
-            if state["kind"] == "repository":
-                relative = os.path.relpath(self.snapshot, state["path"])
-                internal = (
-                    (os.path.relpath(self.internal_dir, state["path"]) + "/")
-                    if self.internal_dir
-                    else None
-                )
-                state["files"] = [
-                    item
-                    for item in state["files"]
-                    if item["path"] != relative
-                    and not (internal and item["path"].startswith(internal))
-                ]
+            state = self.read_state()
         except Exception as error:  # noqa: BLE001 — ошибка наблюдения не останавливает оболочку
             # Временная ошибка не заменяет последнее успешно прочитанное состояние
             self.error = str(error)

@@ -13,21 +13,17 @@ from app.api.schemas.cli.cli import (
 )
 from app.api.schemas.cli.snapshot import SnapshotReq, SnapshotRes
 from app.db.models.courses.course import Course
-from app.db.models.practice.practice import PracticeSession, PracticeSnapshot
-from app.db.models.practice.repository import (
-    GraphEvent,
-    RepositoryCommit,
-    SnapshotReceipt,
-)
+from app.db.models.practice.practice import PracticeSession
 from app.db.session import get_session
 from app.services.cli.authorization import CliAuthorization
 from app.services.cli.cli_presence import presence
 from app.services.cli.live_worktree import live_worktree
+from app.services.cli.practice_reset import PracticeResetService
 from app.services.practice.practice_events import events
 from app.services.practice.repository_state import store_state
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/v1/cli", tags=["cli"])
@@ -149,22 +145,12 @@ async def reset_practice(
     db: Annotated[AsyncSession, Depends(get_session)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ):
-    await CliAuthorization.authorized_session(
-        db, request.session_id, request.generation, credentials
-    )
-
-    for table in [
-        PracticeSnapshot,
-        RepositoryCommit,
-        GraphEvent,
-        SnapshotReceipt,
-    ]:
-        await db.execute(delete(table).where(table.session_id == request.session_id))
-
+    """Очистить практику и вернуть новое поколение действующему CLI"""
+    session, changed = await PracticeResetService.reset(db, request, credentials)
     await db.commit()
-
-    events.publish(request.session_id)
-
-    return CliResetPracticeRes(
-        session_id=request.session_id, generation=request.generation, reset=True
-    )
+    live_worktree.bind(session.id, session.generation, session.key_hash)
+    if changed:
+        presence.remove(session.id)
+        presence.touch(session.id, session.generation)
+        events.publish(session.id)
+    return PracticeResetService.response(session, request)

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { GitRepository } from '../../practice/git/GitRepository'
 import { useWorktree } from '../../practice/git/useWorktree'
 import { usePracticeState } from '../../practice/git/usePracticeState'
@@ -19,39 +19,20 @@ function StepContent({ content }) {
   })}</div>
 }
 
-// Показать описание шага с управляемым раскрытием длинного текста
+// Показать свёрнутую полосу описания с возможностью раскрыть содержимое
 function StepDescription({ step }) {
-  const contentRef = useRef(null)
   const [expanded, setExpanded] = useState(false)
-  const [expandedHeight, setExpandedHeight] = useState(112)
-  const [overflowing, setOverflowing] = useState(false)
-
-  useLayoutEffect(() => {
-    const content = contentRef.current
-    const observer = new ResizeObserver(() => setOverflowing(content.scrollHeight > 112))
-    observer.observe(content)
-    return () => observer.disconnect()
-  }, [step])
-
-  // Переключить раскрытие описания с ограничением его высоты
-  function toggleExpanded() {
-    if (!expanded) setExpandedHeight(Math.min(360, Math.max(112, contentRef.current.scrollHeight)))
-    setExpanded(value => !value)
-  }
-
   return <section className="step-description" aria-labelledby="step-description-title">
     <header className="step-description-heading">
       <h2 id="step-description-title"><BookOpen size={17} /><span title={step?.title}>{step ? withoutFinalPeriod(step.title) : 'Описание шага'}</span></h2>
-    </header>
-    <div id="step-description-content" className={`step-description-viewport ${expanded ? 'expanded' : ''} ${overflowing && !expanded ? 'has-overflow' : ''}`} style={{ height: expanded ? expandedHeight : 112 }} tabIndex={expanded ? 0 : undefined}>
-      <div ref={contentRef} className="step-description-content">
-        {step ? <StepContent content={step.content} /> : <p>Шаги курса пока не добавлены</p>}
-      </div>
-    </div>
-    <div className="step-description-actions">
-      <button type="button" className="step-description-toggle" style={{ visibility: overflowing || expanded ? 'visible' : 'hidden' }} disabled={!overflowing && !expanded} aria-expanded={expanded} aria-controls="step-description-content" onClick={toggleExpanded}>
+      <button type="button" className="step-description-toggle" aria-expanded={expanded} aria-controls="step-description-content" onClick={() => setExpanded(value => !value)}>
         {expanded ? 'Свернуть' : 'Развернуть'}{expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
+    </header>
+    <div id="step-description-content" className="step-description-viewport expanded" hidden={!expanded} tabIndex={expanded ? 0 : undefined}>
+      <div className="step-description-content">
+        {step ? <StepContent content={step.content} /> : <p>Шаги курса пока не добавлены</p>}
+      </div>
     </div>
   </section>
 }
@@ -59,15 +40,23 @@ function StepDescription({ step }) {
 // Собрать шаги курса и живое состояние выбранной практической сессии
 export function GitCourse({ title, steps, sessionId }) {
   const [selectedStepId, setSelectedStepId] = useState(steps[0]?.id ?? null)
+  const [graphExpanded, setGraphExpanded] = useState(false)
+  useEffect(() => {
+    if (!graphExpanded) return
+    // Escape возвращает обычную компоновку из режима просмотра графа
+    const exitGraph = event => { if (event.key === 'Escape') setGraphExpanded(false) }
+    window.addEventListener('keydown', exitGraph)
+    return () => window.removeEventListener('keydown', exitGraph)
+  }, [graphExpanded])
   const selectedStep = steps.find(step => step.id === selectedStepId) ?? steps[0]
   const live = usePracticeState(sessionId)
   const worktree = useWorktree(sessionId)
   const snapshot = live.data?.snapshot
   const connected = !live.error && live.data?.status === 'active' && live.data?.cli_connected
   const status = live.error ? (worktree.data && !worktree.error ? 'Файлы доступны · история графа недоступна' : 'Нет связи с сервером') : connected ? 'CLI подключен' : live.data ? 'CLI не подключен' : 'Подключение…'
-  return <section className="git-course" aria-label={title}>
+  return <section className={`git-course ${graphExpanded ? 'graph-expanded' : ''}`} aria-label={title}>
     <div className="git-layout">
-      <aside className="practice-panel" aria-label="Начало работы">
+      <aside className="practice-panel" id="course-practice-panel" aria-label="Начало работы" hidden={graphExpanded}>
         <h2><Terminal size={18} />Локальная практика</h2>
 
         {steps.length ? <ol className="practice-steps">
@@ -81,11 +70,16 @@ export function GitCourse({ title, steps, sessionId }) {
         <p className="practice-footer">Выход из CLI: <code>exit</code> или <code>Ctrl+D</code></p>
       </aside>
       <div className="repository-workspace">
-        <StepDescription step={selectedStep} />
-        <div className="repository-toolbar"><span><GitBranch size={17} />Репозиторий</span><Status active={connected}>{status}</Status></div>
-        <div className="directory-info"><span><FolderOpen size={16} />Рабочая директория</span><code>{worktree.data?.state?.path ?? snapshot?.state.path ?? 'Выбери папку в CLI'}</code></div>
+        {!graphExpanded && <StepDescription key={selectedStep?.id} step={selectedStep} />}
+        <div className="repository-toolbar">
+          <span><GitBranch size={17} />Репозиторий</span>
+          <div className="repository-toolbar-actions">
+            <Status active={connected}>{status}</Status>
+          </div>
+        </div>
+        <div className="directory-info"><span><FolderOpen size={16} />Рабочая директория</span><code title={worktree.data?.state?.path ?? snapshot?.state.path}>{worktree.data?.state?.path ?? snapshot?.state.path ?? 'Выбери папку в CLI'}</code></div>
         {live.data?.status === 'closed' && <p className="snapshot-warning">Сессия закрыта</p>}
-        <GitRepository snapshot={snapshot} history={live.data?.history} worktree={worktree} />
+        <GitRepository snapshot={snapshot} history={live.data?.history} worktree={worktree} graphExpanded={graphExpanded} onToggleGraph={() => setGraphExpanded(value => !value)} />
       </div>
     </div>
   </section>

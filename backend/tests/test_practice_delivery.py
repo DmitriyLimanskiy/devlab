@@ -395,13 +395,199 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     await db.scalar(select(func.count()).select_from(PracticeSnapshot)),
                     1,
                 )
-            await asyncio.to_thread(client.reset_practice, connection)
+            from uuid import uuid4
+
+            reset_id = str(uuid4())
+            newer = await asyncio.to_thread(client.reset_practice, connection, reset_id)
+            self.assertEqual(newer.generation, connection.generation + 1)
+            self.assertEqual(newer.key, connection.key)
             async with self.factory() as db:
                 for model in models:
                     self.assertEqual(
-                        await db.scalar(select(func.count()).select_from(model)), 0
+                        await db.scalar(select(func.count()).select_from(model)),
+                        1 if model is SnapshotReceipt else 0,
                     )
-                self.assertIsNotNone(await db.get(PracticeSession, course.session_id))
+                session = await db.get(PracticeSession, course.session_id)
+                self.assertEqual(session.generation, newer.generation)
+            await asyncio.to_thread(client.send_snapshot, newer, state, 1)
+            retry = await asyncio.to_thread(client.reset_practice, connection, reset_id)
+            self.assertEqual(retry, newer)
+            async with self.factory() as db:
+                self.assertEqual(
+                    await db.scalar(select(func.count()).select_from(PracticeSnapshot)),
+                    1,
+                )
+            with self.assertRaises(ApiError):
+                await asyncio.to_thread(client.send_snapshot, connection, state, 2)
+            with self.assertRaises(ApiError):
+                await asyncio.to_thread(client.reset_practice, connection, str(uuid4()))
+        finally:
+            server.should_exit = True
+            await task
+            app.dependency_overrides.pop(get_session, None)
+
+    async def test_reset_inside_live_bash_keeps_session_and_updates_browser(self):
+        """Проверить два сброса через живой PTY без смены bash и потери синхронизации"""
+        import os
+        import pty
+        import select
+        import shlex
+        import time
+
+        await self.prepare_courses()
+        course = await self.request()
+
+        async def dependency():
+            """Предоставить ручкам локального сервера изолированную БД"""
+            async with self.factory() as db:
+                yield db
+
+        app.dependency_overrides[get_session] = dependency
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        port = listener.getsockname()[1]
+        server = uvicorn.Server(uvicorn.Config(app, log_level="error", lifespan="off"))
+        task = asyncio.create_task(server.serve(sockets=[listener]))
+
+        def exercise():
+            """Управлять настоящим CLI через PTY параллельно HTTP-серверу теста"""
+            with tempfile.TemporaryDirectory() as directory:
+                folder = Path(directory) / "repo"
+                folder.mkdir()
+                queue_root = Path(directory) / "queues"
+                master, slave = pty.openpty()
+                process = subprocess.Popen(
+                    [sys.executable, "-m", "devlab"],
+                    stdin=slave,
+                    stdout=slave,
+                    stderr=slave,
+                    env=dict(
+                        os.environ,
+                        PYTHONPATH=str(Path(__file__).resolve().parents[2] / "cli/src"),
+                        DEVLAB_SERVER_URL=f"http://127.0.0.1:{port}",
+                        DEVLAB_OFFLINE="0",
+                        DEVLAB_STATE_DIR=str(queue_root),
+                        NO_COLOR="1",
+                    ),
+                )
+
+                def until(expected):
+                    """Прочитать PTY до ожидаемого текста с ограниченным ожиданием"""
+                    data = b""
+                    deadline = time.monotonic() + 20
+                    while (
+                        not (
+                            expected in data
+                            if isinstance(expected, bytes)
+                            else expected.search(data)
+                        )
+                        and time.monotonic() < deadline
+                    ):
+                        if select.select([master], [], [], 0.1)[0]:
+                            data += os.read(master, 65536)
+                    self.assertTrue(
+                        expected in data
+                        if isinstance(expected, bytes)
+                        else expected.search(data),
+                        data.decode(errors="replace"),
+                    )
+                    return data
+
+                def state_when(predicate):
+                    """Дождаться подтверждённого состояния браузерного HTTP API"""
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        with urllib.request.urlopen(
+                            f"http://127.0.0.1:{port}/api/v1/practice-sessions/{course.session_id}/snapshot"
+                        ) as response:
+                            value = json.load(response)
+                        if predicate(value):
+                            return value
+                        time.sleep(0.05)
+                    self.fail("Состояние после сброса не доставлено")
+
+                try:
+                    until("Номер курса".encode())
+                    os.write(master, b"1\n")
+                    until("Папка проекта".encode())
+                    os.write(master, str(folder).encode() + b"\n")
+                    until(b" > ")
+                    initial = state_when(lambda value: value["snapshot"] is not None)
+                    os.write(master, b"echo BASH-PID:$$\n")
+                    import re
+
+                    pid_output = until(re.compile(rb"BASH-PID:\d+"))
+                    bash_pid = re.findall(rb"BASH-PID:(\d+)", pid_output)[-1]
+                    os.write(
+                        master,
+                        b"git init -b main && git -c user.name=Test -c user.email=test@example.invalid commit --allow-empty -m first; printf 'COMMIT-DONE:%s\\n' $?\n",
+                    )
+                    until(b"COMMIT-DONE:0")
+                    committed = state_when(
+                        lambda value: (
+                            value["snapshot"]["state"]["kind"] == "repository"
+                            and len(value["snapshot"]["state"]["commits"]) == 1
+                        )
+                    )
+                    self.assertGreater(
+                        committed["graph_history_id"], initial["graph_history_id"]
+                    )
+                    for index in range(2):
+                        command = (
+                            shlex.quote(sys.executable)
+                            + " -m devlab reset; printf 'RESET-DONE:%s\\n' $?\n"
+                        )
+                        os.write(master, command.encode())
+                        output = until(b"RESET-DONE:0")
+                        self.assertIn("История практики очищена".encode(), output)
+                        self.assertNotIn("Выберите курс".encode(), output)
+                        current = state_when(
+                            lambda value: (
+                                value["generation"] == initial["generation"] + index + 1
+                                and value["snapshot"] is not None
+                                and value["snapshot"]["generation"]
+                                == value["generation"]
+                            )
+                        )
+                        self.assertTrue(current["cli_connected"])
+                        self.assertEqual(current["snapshot"]["version"], 1)
+                        with urllib.request.urlopen(
+                            f"http://127.0.0.1:{port}/api/v1/practice-sessions/{course.session_id}/snapshots?after_id=0"
+                        ) as response:
+                            history = json.load(response)
+                        self.assertEqual(len(history["snapshots"]), 1)
+                    os.write(master, b"echo BASH-PID:$$\n")
+                    self.assertIn(
+                        b"BASH-PID:" + bash_pid, until(re.compile(rb"BASH-PID:\d+"))
+                    )
+                    os.write(
+                        master,
+                        b"git -c user.name=Test -c user.email=test@example.invalid commit --allow-empty -m after-reset; printf 'AFTER-DONE:%s\\n' $?\n",
+                    )
+                    until(b"AFTER-DONE:0")
+                    state_when(
+                        lambda value: (
+                            len(value["snapshot"]["state"].get("commits", [])) == 2
+                        )
+                    )
+                    self.assertFalse(list((queue_root / "pending").glob("*-1.json")))
+                    os.write(master, b"exit\n")
+                    until("Хорошего дня".encode())
+                    self.assertEqual(process.wait(timeout=5), 0)
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.wait()
+                    os.close(master)
+                    os.close(slave)
+
+        try:
+            for _ in range(200):
+                if server.started:
+                    break
+                await asyncio.sleep(0.01)
+            self.assertTrue(server.started)
+            await asyncio.to_thread(exercise)
         finally:
             server.should_exit = True
             await task

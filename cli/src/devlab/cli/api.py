@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
-from uuid import UUID
+from uuid import UUID, uuid4
 
 
 class ApiError(Exception):
@@ -171,25 +171,26 @@ class ApiClient:
         ):
             raise ApiError("Сервер не подтвердил присутствие CLI")
 
-    def reset_practice(self, connection):
-        """Очистить историю сессии и проверить подтверждение сервера"""
-        payload = {
-            "session_id": connection.session_id,
-            "generation": connection.generation,
-        }
-
+    def reset_practice(self, connection, reset_id=None):
+        """Сбросить практику и получить новое поколение без замены ключа"""
+        reset_id = str(reset_id or uuid4())
         data = self.request(
             "/cli/reset-practice",
-            payload,
+            {
+                "session_id": connection.session_id,
+                "generation": connection.generation,
+                "reset_id": reset_id,
+            },
             connection.key,
             method="DELETE",
         )
-
         if (
             not isinstance(data, dict)
             or data.get("session_id") != connection.session_id
             or type(data.get("generation")) is not int
-            or data["generation"] != connection.generation
+            or data["generation"] != connection.generation + 1
+            or data.get("reset_id") != reset_id
             or data.get("reset") is not True
         ):
             raise ApiError("Сервер не подтвердил сброс истории")
+        return Connection(connection.session_id, data["generation"], connection.key)

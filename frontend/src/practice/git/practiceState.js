@@ -37,6 +37,7 @@ export function parsePracticeState(data, sessionId) {
 export function newerState(old, next) {
   if (!old) return next
   if (next.generation < old.generation) return old
+  if (next.generation > old.generation) return next
   const a = old.snapshot, b = next.snapshot
   if (a && (!b || b.generation < a.generation || (b.generation === a.generation && b.version < a.version))) return old
   return next

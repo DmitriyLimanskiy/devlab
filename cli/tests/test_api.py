@@ -96,11 +96,16 @@ class ApiTest(unittest.TestCase):
                 )
                 self.respond(
                     owner.reset_status,
-                    owner.reset_reply
+                    (
+                        {"reset_id": body["reset_id"], **owner.reset_reply}
+                        if isinstance(owner.reset_reply, dict)
+                        else owner.reset_reply
+                    )
                     if owner.reset_reply is not None
                     else {
                         "session_id": body["session_id"],
-                        "generation": body["generation"],
+                        "generation": body["generation"] + 1,
+                        "reset_id": body["reset_id"],
                         "reset": True,
                     },
                 )
@@ -134,6 +139,7 @@ class ApiTest(unittest.TestCase):
                     PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
                     DEVLAB_SERVER_URL=self.client.server_url,
                     DEVLAB_OFFLINE=offline,
+                    DEVLAB_CONTROL_SOCKET="",
                 ),
             )
             self.assertEqual(list(Path(directory).iterdir()), [])
@@ -156,7 +162,11 @@ class ApiTest(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            self.records[-1][2],
+            {
+                key: value
+                for key, value in self.records[-1][2].items()
+                if key != "reset_id"
+            },
             {"session_id": "c7e1af73-5110-4c3d-9190-f8a3ef34d4ef", "generation": 2},
         )
         self.assertEqual(self.records[-1][3], "Bearer test-secret-key")
@@ -165,7 +175,7 @@ class ApiTest(unittest.TestCase):
         """Отклонить неподтверждённый сброс и чужую сессию или поколение"""
         valid = {
             "session_id": "c7e1af73-5110-4c3d-9190-f8a3ef34d4ef",
-            "generation": 2,
+            "generation": 3,
             "reset": True,
         }
         for reply in (
@@ -173,7 +183,7 @@ class ApiTest(unittest.TestCase):
             {**valid, "reset": False},
             {**valid, "reset": 1},
             {**valid, "session_id": "other"},
-            {**valid, "generation": 3},
+            {**valid, "generation": 4},
             {**valid, "generation": "2"},
         ):
             with self.subTest(reply=reply):

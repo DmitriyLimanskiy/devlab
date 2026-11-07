@@ -167,7 +167,6 @@ code { font-family: var(--font-mono); }
 @media (max-width: 600px) { .git-files li { flex-direction: column; gap: 4px; } .repository-toolbar { flex-wrap: wrap; gap: 8px; } }
 @media (prefers-reduced-motion: reduce) { .git-change { animation: none; } .commit-graph circle { transition: none; } }
 
-.repo-panel-history { flex: 1.3; min-height: 180px; max-height: 520px; overflow: auto; }
 .repo-panel-index, .repo-panel-files { flex: 1; min-height: 130px; max-height: 360px; overflow: auto; }
 .history-scroll, .repo-panel-index, .repo-panel-files, .step-description-viewport.expanded { overscroll-behavior: contain; }
 @media (prefers-reduced-motion: reduce) { .commit-graph path { transition: none; } }
@@ -183,7 +182,6 @@ code { font-family: var(--font-mono); }
 .git-summary { padding: 2px 0; }
 .git-file-flow { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); align-items: stretch; gap: 10px; min-width: 0; min-height: 220px; flex: none; }
 .staging-chevron { align-self: center; color: var(--accent); }
-.repo-panel-history { min-height: 250px; max-height: 580px; overflow: hidden; }
 .git-file-flow .repo-panel { min-height: 220px; max-height: 400px; }
 .git-file-flow .repo-panel header { padding: 12px; align-items: flex-start; flex-direction: column; gap: 5px; }
 .git-file-flow .git-files li { flex-direction: column; gap: 5px; padding: 10px 14px; }
@@ -197,8 +195,6 @@ code { font-family: var(--font-mono); }
 }
 @media (prefers-reduced-motion: reduce) { .commit-list li { transition: none; } }
 
-.repo-panel-history { flex: 0 0 auto; max-height: 440px; }
-.history-scroll { max-height: 360px; }
 
 .commit-labels { max-height: 60px; overflow-y: auto; }
 
@@ -392,3 +388,83 @@ code { font-family: var(--font-mono); }
 .api-error-retry:hover { border-color: var(--accent); background: var(--bg-selected); }
 .catalog:has(> .api-error) { display: flex; flex-direction: column; min-height: 100%; }
 .catalog > .api-error { flex: 1; height: auto; }
+
+
+/* Граф занимает оставшееся пространство, вспомогательные панели раскрываются отдельно */
+.git-layout { grid-template-columns: 240px minmax(0, 1fr); }
+.graph-expanded .git-layout { grid-template-columns: minmax(0, 1fr); }
+.practice-panel[hidden] { display: none; }
+.repository-workspace { overflow: hidden; }
+.repository-toolbar { flex: 0 0 auto; padding-block: 0; min-height: 32px; }
+.repository-toolbar-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; }
+.repository-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 6px 10px; border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-secondary); background: var(--glass-control); font-size: 12px; cursor: pointer; }
+.repository-action:hover { border-color: var(--accent); color: var(--text-primary); }
+.directory-info { flex-wrap: nowrap; min-height: 34px; padding-block: 6px; }
+.directory-info > span { flex-shrink: 0; }
+.directory-info code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.git-repository { display: flex; flex-direction: column; flex: 1 1 0; gap: 8px; min-height: 0; }
+.git-summary { flex: 0 0 auto; }
+.repo-panel-history { flex: 1 1 0; min-height: 180px; overflow: hidden; }
+.repo-panel-history > header { flex: 0 0 auto; padding-block: 8px; }
+.repo-panel-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 12px; min-width: 0; }
+.repo-panel-actions > span { color: var(--text-muted); font: 11px var(--font-mono); }
+.history-scroll { min-height: 0; max-height: none; flex: 1 1 0; }
+.history-note { flex: 0 0 auto; }
+.worktree-drawer { flex: 0 0 auto; min-width: 0; border: 1px solid var(--glass-border); border-radius: 12px; background: rgb(15 28 40 / 52%); overflow: hidden; }
+.worktree-drawer > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 40px; padding: 9px 12px; color: var(--text-primary); cursor: pointer; font-size: 13px; list-style: none; }
+.worktree-drawer > summary::-webkit-details-marker { display: none; }
+.worktree-drawer > summary > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
+.worktree-summary { color: var(--text-muted); font-size: 12px; }
+.drawer-chevron { flex-shrink: 0; margin-left: auto; }
+.worktree-drawer[open] .drawer-chevron { transform: rotate(180deg); }
+.worktree-drawer .snapshot-warning { padding: 8px 12px; }
+.worktree-drawer .git-file-flow { height: clamp(180px, 27dvh, 240px); min-height: 0; gap: 8px; padding: 0 8px 8px; }
+.worktree-drawer .git-file-flow .repo-panel { min-height: 0; max-height: none; overflow: hidden; }
+.worktree-drawer .repo-panel > header { flex: 0 0 auto; padding: 8px 12px; }
+.worktree-drawer .git-files { flex: 1 1 0; min-height: 0; overflow: auto; }
+.worktree-drawer .repo-empty { min-height: 0; padding: 12px; }
+.graph-expanded .worktree-drawer { display: none; }
+@media (max-width: 1000px) { .git-layout { grid-template-columns: 220px minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .git-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .practice-panel { max-height: 32dvh; }
+  .graph-expanded .git-layout { grid-template-rows: minmax(0, 1fr); }
+  .repository-toolbar { align-items: flex-start; gap: 6px; }
+  .repository-toolbar-actions { justify-content: flex-start; gap: 6px 12px; }
+  .directory-info > span { font-size: 0; gap: 0; }
+  .directory-info > span svg { width: 16px; height: 16px; }
+  .repo-panel-history > header { align-items: flex-start; gap: 8px; }
+  .repo-panel-history .repo-panel-actions > span { display: none; }
+}
+@container repository (max-width: 520px) {
+  .worktree-drawer .git-file-flow { height: clamp(210px, 34dvh, 290px); grid-template-rows: minmax(0, 1fr) 16px minmax(0, 1fr); gap: 4px; }
+  .worktree-drawer .repo-panel-actions > span { display: none; }
+  .worktree-drawer .repo-panel > header { flex-direction: row; }
+}
+@media (max-height: 650px) {
+  .repository-workspace { overflow: auto; }
+  .git-repository { flex: 1 0 340px; }
+  .graph-expanded .git-repository { flex: 1 1 0; }
+  .graph-expanded .repo-panel-history { min-height: 120px; }
+}
+
+.graph-controls { display: flex; align-items: center; flex: 0 0 auto; flex-wrap: wrap; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--border-soft); }
+.graph-control { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 30px; min-height: 30px; padding: 5px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer; }
+.graph-control:hover, .graph-control[aria-pressed="true"] { border-color: var(--glass-border); background: var(--glass-control); color: var(--text-primary); }
+.graph-control:disabled { opacity: .35; cursor: default; }
+.graph-zoom { min-width: 54px; font-family: var(--font-mono); }
+.graph-head { margin-left: auto; }
+.graph-stage { position: relative; }
+.graph-stage .commit-history { min-width: 0; transform-origin: top left; }
+
+.worktree-drawer .git-files li { flex-direction: row; align-items: baseline; gap: 8px; padding: 5px 12px; }
+.worktree-drawer .file-status { flex: 0 0 auto; min-width: 0; white-space: nowrap; }
+.worktree-drawer .git-files code { flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+
+.repository-workspace > .step-description { padding: 6px 12px; }
+.repository-workspace > .step-description .step-description-heading { margin-bottom: 0; flex-wrap: nowrap; gap: 8px; }
+.repository-workspace > .step-description .step-description-heading h2 { width: auto; }
+.repository-workspace > .step-description .step-description-viewport { height: auto; max-height: min(360px, 35dvh); margin-top: 8px; }
+
+.repository-workspace > .step-description .step-description-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.repository-workspace > .step-description .step-description-toggle { grid-column: 2; justify-self: center; }

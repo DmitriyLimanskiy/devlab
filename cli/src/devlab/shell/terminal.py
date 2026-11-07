@@ -5,6 +5,7 @@ import pty
 import select
 import signal
 import sys
+import tempfile
 import termios
 import tty
 
@@ -31,10 +32,18 @@ def run_bash(
             + str(notify)
             + "'\n"
         )
+    from devlab.cli.control import LocalControl
+
+    control_directory = tempfile.TemporaryDirectory(
+        prefix="devlab-control-", dir="/tmp"
+    )
+    control = LocalControl(os.path.join(control_directory.name, "control.sock"), None)
     pid, master = pty.fork()
     if pid == 0:
         try:
             os.close(events)
+            control.listener.close()
+            os.environ["DEVLAB_CONTROL_SOCKET"] = str(control.path)
             os.chdir(folder)
             os.environ["BASH_SILENCE_DEPRECATION_WARNING"] = "1"
             os.execv(bash, [bash, "--noprofile", "--rcfile", rc_path, "-i"])
@@ -44,26 +53,25 @@ def run_bash(
 
     os.close(notify)
     # Потоки запускаются после fork: не наследуем блокировки фонового отправителя
-    presence = None
-    worktree = None
+    runtime = None
     if sender is not None:
-        from devlab.cli.presence import PresenceReporter
-        from devlab.practice.worktree import WorktreeSender
+        from devlab.practice.runtime import PracticeRuntime
 
-        presence = PresenceReporter(sender.client, sender.connection)
-        worktree = WorktreeSender(sender.client, sender.connection, snapshot=snapshot)
-        worktree.start()
-        presence.start()
-        sender.start()
+        runtime = PracticeRuntime(sender, folder, snapshot)
+        control.runtime = runtime
+        runtime.start()
     observer = Observer(
         folder,
         events,
         snapshot,
         os.path.join(os.path.dirname(rc_path), "command-status.json"),
-        on_state=sender.publish if sender is not None else None,
-        on_worktree=worktree.seed if worktree is not None else None,
+        on_state=runtime.publish if runtime is not None else None,
+        on_worktree=runtime.seed if runtime is not None else None,
         internal_dir=sender.pending_path.parent if sender is not None else None,
     )
+    if runtime is not None:
+        runtime.observer = observer
+    control.start()
     observer.preserve_existing = not write_snapshot
     observer.thread.start()
 
@@ -105,13 +113,11 @@ def run_bash(
         if not finished:
             # Закрытие master посылает SIGHUP терминальной сессии
             os.waitpid(pid, 0)
+        control.close()
+        control_directory.cleanup()
         observer.close()
         os.close(events)
-        if worktree is not None:
-            worktree.close()
-        if presence is not None:
-            presence.close()
-        if sender is not None:
-            sender.close()
-            if message := sender.summary():
+        if runtime is not None:
+            runtime.close()
+            if message := runtime.sender.summary():
                 print(f"\n  Синхронизация: {message}", flush=True)

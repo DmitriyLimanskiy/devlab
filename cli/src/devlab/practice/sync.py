@@ -143,6 +143,25 @@ class SnapshotSender:
                     self.condition.notify_all()
                 delay = self.retry_delay
 
+    def stop(self):
+        """Остановить доставку без отправки оставшейся очереди и дождаться запроса"""
+        with self.condition:
+            self.closed = True
+            self.condition.notify_all()
+        self.thread.join(timeout=self.client.timeout + 1)
+        if self.thread.is_alive():
+            raise ApiError("Не удалось остановить отправитель снимков")
+
+    def clear_pending(self):
+        """Удалить очередь остановленного поколения после подтверждения сброса"""
+        with self.condition:
+            if self.thread.is_alive():
+                raise RuntimeError("Перед очисткой остановите отправитель снимков")
+            self.pending_path.unlink(missing_ok=True)
+            self.queue.clear()
+            self.last_state = None
+            self.storage_error = self.error = None
+
     def close(self):
         """Ограниченно дождаться подтверждений и остановить отправитель"""
         with self.condition:

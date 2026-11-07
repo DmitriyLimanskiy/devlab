@@ -7,7 +7,7 @@ export function usePracticeState(sessionId) {
   const [result, setResult] = useState({ data: null, connection: 'connecting', error: false, presenceDeadline: 0 })
   useEffect(() => {
     let disposed = false, socket, reconnect, poll, controller, reading = false, dirty = false, delay = 1000
-    let history = [], cursor = 0
+    let history = [], cursor = 0, historyGeneration = -1
     setResult({ data: null, connection: 'connecting', error: false, presenceDeadline: 0 })
     // Обновить статус связи, если подписка ещё активна
     const connection = value => !disposed && setResult(old => ({ ...old, connection: value }))
@@ -22,7 +22,13 @@ export function usePracticeState(sessionId) {
         const response = await fetch(practiceApi(sessionId), { signal: controller.signal, cache: 'no-store' })
         if (!response.ok) throw new Error('Снимок недоступен')
         const data = parsePracticeState(await response.json(), sessionId)
+        if (data.generation < historyGeneration) return
         const through = data.graph_history_id ?? 0
+        if (data.generation !== historyGeneration || through < cursor) {
+          history = []
+          cursor = 0
+          historyGeneration = data.generation
+        }
         while (cursor < through) {
           const historyResponse = await fetch(practiceHistory(sessionId, cursor, through), { signal: controller.signal, cache: 'no-store' })
           if (!historyResponse.ok) throw new Error('История недоступна')

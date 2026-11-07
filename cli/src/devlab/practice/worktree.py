@@ -6,6 +6,8 @@ from pathlib import Path
 from websockets.exceptions import ConnectionClosed, WebSocketException
 from websockets.sync.client import connect
 
+from devlab.cli.api import ApiError
+
 
 class WorktreeSender:
     def __init__(
@@ -193,6 +195,15 @@ class WorktreeSender:
         finally:
             if socket is not None:
                 socket.close()
+
+    def stop(self):
+        """Остановить оперативную доставку без ожидания подтверждения последнего пакета"""
+        with self.condition:
+            self.closed = True
+            self.condition.notify_all()
+        self.thread.join(timeout=self.client.timeout + 1)
+        if self.thread.is_alive():
+            raise ApiError("Не удалось остановить отправитель файлов")
 
     def close(self):
         """Ограниченно дождаться последнего подтверждения и закрыть отправитель"""

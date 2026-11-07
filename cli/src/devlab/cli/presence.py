@@ -8,6 +8,7 @@ class PresenceReporter:
         """Подготовить фоновое подтверждение присутствия CLI"""
         self.client, self.connection, self.interval = client, connection, interval
         self.stopped = threading.Event()
+        self.disconnect_on_stop = True
         self.thread = threading.Thread(target=self.run, daemon=True)
 
     def start(self):
@@ -27,11 +28,19 @@ class PresenceReporter:
                         return
                 self.stopped.wait(self.interval)
         finally:
-            if not permanent_error:
+            if not permanent_error and self.disconnect_on_stop:
                 try:
                     self.client.presence(self.connection, disconnect=True)
                 except ApiError:
                     pass
+
+    def stop(self):
+        """Приостановить heartbeat без отключения сохраняемой сессии"""
+        self.disconnect_on_stop = False
+        self.stopped.set()
+        self.thread.join(timeout=self.client.timeout + 1)
+        if self.thread.is_alive():
+            raise ApiError("Не удалось остановить heartbeat")
 
     def close(self):
         """Остановить heartbeat с ограниченным ожиданием потока"""

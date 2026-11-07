@@ -267,3 +267,11 @@ test('снимок до первого коммита не оставляет п
   assert.equal(graph.lanes[0].name, 'main')
   assert.equal(graph.historicalLabels.length, 0)
 })
+
+
+test('новое поколение сброса очищает прежний снимок даже до прихода нового', () => {
+  const old = state(2, 5)
+  const reset = { ...state(3, 1), snapshot: null, graph_history_id: 0 }
+  assert.equal(newerState(old, reset), reset)
+  assert.equal(newerState(reset, old), reset)
+})

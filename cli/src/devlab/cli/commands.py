@@ -3,6 +3,7 @@ import sys
 
 from devlab.cli.api import ApiClient, ApiError
 from devlab.cli.connection import choose_connection
+from devlab.cli.control import LocalControl
 
 
 class CliCommands:
@@ -40,6 +41,10 @@ class CliCommands:
             print("Для сброса истории требуется подключение к серверу", file=sys.stderr)
             return 1
         try:
+            if path := os.environ.get("DEVLAB_CONTROL_SOCKET"):
+                LocalControl.request_reset(path)
+                print("\n  История практики очищена\n  CLI остаётся подключён\n")
+                return 0
             client = ApiClient(
                 os.environ.get("DEVLAB_SERVER_URL", "http://127.0.0.1:8080")
             )
