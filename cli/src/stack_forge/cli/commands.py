@@ -1,9 +1,9 @@
 import os
 import sys
 
-from devlab.cli.api import ApiClient, ApiError
-from devlab.cli.connection import choose_connection
-from devlab.cli.control import LocalControl
+from stack_forge.cli.api import ApiClient, ApiError
+from stack_forge.cli.connection import choose_connection
+from stack_forge.cli.control import LocalControl
 
 
 class CliCommands:
@@ -18,7 +18,8 @@ class CliCommands:
         if args == ["reset"]:
             return CliCommands.reset_practice()
         print(
-            "Неизвестная команда или аргументы — смотри devlab --help", file=sys.stderr
+            "Неизвестная команда или аргументы — смотри stack-forge --help",
+            file=sys.stderr,
         )
         return 2
 
@@ -26,10 +27,10 @@ class CliCommands:
     def print_help() -> None:
         """Показать команды CLI и способ выхода из bash без обращения к серверу"""
         print(
-            "Запуск: devlab [reset] [--help]\n\n"
+            "Запуск: stack-forge [reset] [--help]\n\n"
             "Команды:\n"
-            "  devlab         Выбрать курс и папку, затем запустить bash\n"
-            "  devlab reset   Выбрать курс и очистить историю его активной сессии в БД\n"
+            "  stack-forge         Выбрать курс и папку, затем запустить bash\n"
+            "  stack-forge reset   Выбрать курс и очистить историю его активной сессии в БД\n"
             "  -h, --help     Показать эту справку\n\n"
             "Выход из bash: exit или Ctrl+D"
         )
@@ -37,16 +38,16 @@ class CliCommands:
     @staticmethod
     def reset_practice() -> int:
         """Подключиться к выбранному курсу и очистить историю без запуска bash"""
-        if os.environ.get("DEVLAB_OFFLINE") == "1":
+        if os.environ.get("STACK_FORGE_OFFLINE") == "1":
             print("Для сброса истории требуется подключение к серверу", file=sys.stderr)
             return 1
         try:
-            if path := os.environ.get("DEVLAB_CONTROL_SOCKET"):
+            if path := os.environ.get("STACK_FORGE_CONTROL_SOCKET"):
                 LocalControl.request_reset(path)
                 print("\n  История практики очищена\n")
                 return 0
             client = ApiClient(
-                os.environ.get("DEVLAB_SERVER_URL", "http://127.0.0.1:8080")
+                os.environ.get("STACK_FORGE_SERVER_URL", "http://127.0.0.1:8080")
             )
             print(
                 "\n  Сброс истории в БД выбранного курса\n"

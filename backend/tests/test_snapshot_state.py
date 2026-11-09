@@ -10,7 +10,7 @@ from app.api.schemas.cli.snapshot import SnapshotReq
 from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-from devlab.practice.git_state import read_state
+from stack_forge.practice.git_state import read_state
 
 
 class SnapshotStateTest(unittest.TestCase):

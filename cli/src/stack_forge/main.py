@@ -5,10 +5,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from devlab.cli.api import ApiClient, ApiError
-from devlab.cli.commands import CliCommands
-from devlab.cli.connection import choose_connection
-from devlab.practice.project import ensure_state_ignored
+from stack_forge.cli.api import ApiClient, ApiError
+from stack_forge.cli.commands import CliCommands
+from stack_forge.cli.connection import choose_connection
+from stack_forge.practice.project import ensure_state_ignored
 
 
 def main() -> int:
@@ -23,7 +23,7 @@ def main() -> int:
         print("Версия для macOS", file=sys.stderr)
         return 1
     if not sys.stdin.isatty() or not sys.stdout.isatty():
-        print("Запустите devlab в интерактивном терминале", file=sys.stderr)
+        print("Запустите stack-forge в интерактивном терминале", file=sys.stderr)
         return 1
 
     bash = shutil.which("bash")
@@ -32,20 +32,20 @@ def main() -> int:
         print("Не найден bash в PATH", file=sys.stderr)
         return 1
 
-    from devlab.shell.terminal import run_bash
+    from stack_forge.shell.terminal import run_bash
 
     color = "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
     accent, reset = ("\033[36m", "\033[0m") if color else ("", "")
-    print(f"\n{accent}  ◇  D E V L A B{reset}  /  0.1.0")
+    print(f"\n{accent}  ◇  S T A C K  F O R G E{reset}  /  0.1.0")
     print("  Локальная среда · bash")
     print("  Выход: exit или Ctrl+D\n", flush=True)
 
     client = connection = None
     try:
-        if os.environ.get("DEVLAB_OFFLINE") != "1":
+        if os.environ.get("STACK_FORGE_OFFLINE") != "1":
             try:
                 client = ApiClient(
-                    os.environ.get("DEVLAB_SERVER_URL", "http://127.0.0.1:8080")
+                    os.environ.get("STACK_FORGE_SERVER_URL", "http://127.0.0.1:8080")
                 )
             except ApiError as error:
                 print(f"  {error} Продолжаем локально")
@@ -75,9 +75,13 @@ def main() -> int:
         return 1
 
     # Временный rc не затрагивает пользовательские настройки и историю bash
-    with tempfile.TemporaryDirectory(prefix="devlab-") as directory:
+    with tempfile.TemporaryDirectory(prefix="stack-forge-") as directory:
         rc = Path(directory) / "bashrc"
-        prompt = r"\n\[\e[36m\]devlab\[\e[0m\] \w > " if color else r"\ndevlab \w > "
+        prompt = (
+            r"\n\[\e[36m\]stack-forge\[\e[0m\] \w > "
+            if color
+            else r"\nstack-forge \w > "
+        )
         snapshot = folder / "state.json"
         try:
             overwrite = True
@@ -104,7 +108,7 @@ def main() -> int:
             ensure_state_ignored(folder)
             if overwrite and not snapshot.exists():
                 with snapshot.open("x") as stream:
-                    json.dump({"generator": "devlab-cli"}, stream)
+                    json.dump({"generator": "stack-forge-cli"}, stream)
         except (EOFError, KeyboardInterrupt):
             print("\n  Запуск отменён")
             return 0
@@ -116,14 +120,14 @@ def main() -> int:
         )
         sender = None
         if connection is not None:
-            from devlab.practice.sync import SnapshotSender
+            from stack_forge.practice.sync import SnapshotSender
 
             sender = SnapshotSender(client, connection, folder)
         try:
             status = run_bash(bash, str(rc), folder, snapshot, overwrite, sender=sender)
         except OSError as error:
             print(
-                f"DevLab: не удалось выполнить терминальную сессию: {error}",
+                f"Stack Forge: не удалось выполнить терминальную сессию: {error}",
                 file=sys.stderr,
             )
             return 1

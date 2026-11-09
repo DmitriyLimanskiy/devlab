@@ -5,7 +5,7 @@ import tempfile
 import threading
 from pathlib import Path
 
-from devlab.cli.api import ApiError
+from stack_forge.cli.api import ApiError
 
 
 class SnapshotSender:
@@ -14,11 +14,12 @@ class SnapshotSender:
     ):
         """Подготовить FIFO снимков, файл очереди и параметры повторной доставки"""
         self.client, self.connection = client, connection
-        root = Path(
-            state_dir
-            or os.environ.get("DEVLAB_STATE_DIR")
-            or Path.home() / "Library" / "Application Support" / "DevLab"
-        )
+        support_dir = Path.home() / "Library" / "Application Support"
+        legacy_dir = support_dir / "DevLab"
+        default_dir = support_dir / "Stack Forge"
+        if not default_dir.exists() and legacy_dir.exists():
+            default_dir = legacy_dir
+        root = Path(state_dir or os.environ.get("STACK_FORGE_STATE_DIR") or default_dir)
         identity = (
             f"{client.server_url}\n{connection.session_id}\n{Path(folder).resolve()}"
         )

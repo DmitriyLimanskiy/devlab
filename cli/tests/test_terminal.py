@@ -26,10 +26,10 @@ class TerminalTest(unittest.TestCase):
             os.environ,
             PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
             NO_COLOR="1",
-            DEVLAB_OFFLINE="1",
+            STACK_FORGE_OFFLINE="1",
         )
         self.process = subprocess.Popen(
-            [sys.executable, "-m", "devlab"],
+            [sys.executable, "-m", "stack_forge"],
             stdin=self.slave,
             stdout=self.slave,
             stderr=self.slave,

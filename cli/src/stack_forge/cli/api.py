@@ -36,7 +36,7 @@ class ApiClient:
             # Чтение свойства проверяет корректность номера порта
             _ = parsed.port
         except ValueError:
-            raise ApiError("Некорректный адрес DEVLAB_SERVER_URL") from None
+            raise ApiError("Некорректный адрес STACK_FORGE_SERVER_URL") from None
         if (
             parsed.scheme not in {"http", "https"}
             or not parsed.hostname
@@ -47,7 +47,7 @@ class ApiClient:
             or parsed.path not in {"", "/"}
         ):
             raise ApiError(
-                "DEVLAB_SERVER_URL должен содержать адрес сервера, например http://127.0.0.1:8080"
+                "STACK_FORGE_SERVER_URL должен содержать адрес сервера, например http://127.0.0.1:8080"
             )
         self.server_url = server_url.rstrip("/")
         self.timeout = timeout

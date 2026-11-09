@@ -15,8 +15,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.cli.api import ApiClient, ApiError
-from devlab.cli.connection import choose_connection
+from stack_forge.cli.api import ApiClient, ApiError
+from stack_forge.cli.connection import choose_connection
 
 
 class ApiTest(unittest.TestCase):
@@ -127,7 +127,7 @@ class ApiTest(unittest.TestCase):
         """Выполнить команду CLI отдельным процессом против тестового сервера"""
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(
-                [sys.executable, "-m", "devlab", *args],
+                [sys.executable, "-m", "stack_forge", *args],
                 input=input_text,
                 capture_output=True,
                 text=True,
@@ -137,9 +137,9 @@ class ApiTest(unittest.TestCase):
                 env=dict(
                     os.environ,
                     PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
-                    DEVLAB_SERVER_URL=self.client.server_url,
-                    DEVLAB_OFFLINE=offline,
-                    DEVLAB_CONTROL_SOCKET="",
+                    STACK_FORGE_SERVER_URL=self.client.server_url,
+                    STACK_FORGE_OFFLINE=offline,
+                    STACK_FORGE_CONTROL_SOCKET="",
                 ),
             )
             self.assertEqual(list(Path(directory).iterdir()), [])
@@ -227,14 +227,14 @@ class ApiTest(unittest.TestCase):
             with self.subTest(args=args):
                 result = self.run_command(*args)
                 self.assertEqual(result.returncode, 0)
-                self.assertIn("devlab reset", result.stdout)
-                self.assertNotIn("DEVLAB_SERVER_URL", result.stdout)
+                self.assertIn("stack-forge reset", result.stdout)
+                self.assertNotIn("STACK_FORGE_SERVER_URL", result.stdout)
                 self.assertEqual(self.records, [])
         for args in (("unknown",), ("reset", "extra")):
             with self.subTest(args=args):
                 result = self.run_command(*args)
                 self.assertEqual(result.returncode, 2)
-                self.assertIn("devlab --help", result.stderr)
+                self.assertIn("stack-forge --help", result.stderr)
                 self.assertEqual(self.records, [])
 
     def test_course_selection_and_initial_snapshot(self):
@@ -265,13 +265,13 @@ class ApiTest(unittest.TestCase):
             env = dict(
                 os.environ,
                 PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"),
-                DEVLAB_SERVER_URL=self.client.server_url,
-                DEVLAB_STATE_DIR=str(Path(directory) / ".sync-cache"),
+                STACK_FORGE_SERVER_URL=self.client.server_url,
+                STACK_FORGE_STATE_DIR=str(Path(directory) / ".sync-cache"),
                 NO_COLOR="1",
             )
-            env.pop("DEVLAB_OFFLINE", None)
+            env.pop("STACK_FORGE_OFFLINE", None)
             process = subprocess.Popen(
-                [sys.executable, "-m", "devlab"],
+                [sys.executable, "-m", "stack_forge"],
                 stdin=slave,
                 stdout=slave,
                 stderr=slave,

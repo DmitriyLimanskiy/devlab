@@ -1,6 +1,6 @@
 import threading
 
-from devlab.cli.api import ApiError
+from stack_forge.cli.api import ApiError
 
 
 class PresenceReporter:

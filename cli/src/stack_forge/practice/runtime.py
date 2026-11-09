@@ -2,11 +2,11 @@ import threading
 from subprocess import TimeoutExpired
 from uuid import uuid4
 
-from devlab.cli.api import ApiError
-from devlab.cli.presence import PresenceReporter
-from devlab.practice.git_state import UnstableRepository
-from devlab.practice.sync import SnapshotSender
-from devlab.practice.worktree import WorktreeSender
+from stack_forge.cli.api import ApiError
+from stack_forge.cli.presence import PresenceReporter
+from stack_forge.practice.git_state import UnstableRepository
+from stack_forge.practice.sync import SnapshotSender
+from stack_forge.practice.worktree import WorktreeSender
 
 
 class PracticeRuntime:
@@ -67,7 +67,7 @@ class PracticeRuntime:
                     UnstableRepository,
                 ) as error:
                     raise ApiError(
-                        "Сброс подтверждён, но локальное состояние не подготовлено — повторите devlab reset"
+                        "Сброс подтверждён, но локальное состояние не подготовлено — повторите stack-forge reset"
                     ) from error
                 connection = self.confirmed_connection
                 sender = SnapshotSender(

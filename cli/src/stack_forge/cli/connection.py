@@ -1,4 +1,4 @@
-from devlab.cli.api import ApiError
+from stack_forge.cli.api import ApiError
 
 
 def choose_connection(client):

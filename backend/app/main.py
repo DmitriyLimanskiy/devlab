@@ -10,7 +10,7 @@ from app.api.routes.practice.worktree import ws_router as worktree_ws_router
 from fastapi import FastAPI
 
 app = FastAPI(
-    title="DevLab",
+    title="Stack Forge",
     docs_url="/api/docs",
     redoc_url=None,
     openapi_url="/api/openapi.json",

@@ -6,7 +6,7 @@ from pathlib import Path
 from websockets.exceptions import ConnectionClosed, WebSocketException
 from websockets.sync.client import connect
 
-from devlab.cli.api import ApiError
+from stack_forge.cli.api import ApiError
 
 
 class WorktreeSender:
@@ -71,7 +71,7 @@ class WorktreeSender:
             payload = json.loads(self.snapshot.read_text())
             # Ответ no на перезапись не должен отправить старую сессию из файла
             if (
-                payload.get("generator") != "devlab-cli"
+                payload.get("generator") not in {"stack-forge-cli", "devlab-cli"}
                 or payload.get("updated_at", 0) < self.started_at
             ):
                 return

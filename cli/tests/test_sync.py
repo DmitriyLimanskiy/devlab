@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.cli.api import ApiError, Connection
-from devlab.practice.sync import SnapshotSender
+from stack_forge.cli.api import ApiError, Connection
+from stack_forge.practice.sync import SnapshotSender
 
 
 class Client:

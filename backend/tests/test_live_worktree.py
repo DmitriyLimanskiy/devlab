@@ -117,9 +117,9 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         from pathlib import Path
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from devlab.cli.api import ApiClient, Connection
-        from devlab.practice.observer import Observer
-        from devlab.practice.worktree import WorktreeSender
+        from stack_forge.cli.api import ApiClient, Connection
+        from stack_forge.practice.observer import Observer
+        from stack_forge.practice.worktree import WorktreeSender
 
         sid, key = uuid4(), "periodic-test-key"
         live_worktree.bind(sid, 1, hashlib.sha256(key.encode()).hexdigest())

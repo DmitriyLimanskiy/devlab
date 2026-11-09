@@ -136,7 +136,7 @@ export function GitRepository({ sessionId, snapshot, history, worktree, graphExp
   const conflicts = files?.filter(file => file.conflict).length ?? 0
   const previous = memory.current.previous
   const repository = current?.kind === 'repository'
-  const empty = !current ? 'Запусти devlab и выбери папку' : current.kind === 'no_repository' ? 'В выбранной папке нет репозитория Git · выполни git init' : 'Не удалось прочитать Git · ожидаем обновление'
+  const empty = !current ? 'Запусти stack-forge и выбери папку' : current.kind === 'no_repository' ? 'В выбранной папке нет репозитория Git · выполни git init' : 'Не удалось прочитать Git · ожидаем обновление'
   return <div ref={root} className="git-repository">
     {repository && <div className="git-summary"><span><GitBranch size={15} />{current.head_kind === 'detached' ? `Detached HEAD · ${current.head.slice(0, 8)}` : current.branch}</span><span>{current.head_kind === 'unborn' ? 'Ветка без коммитов' : commitCount(current.commits.length)}</span>{current.operations.map(operation => <span className="operation" key={operation}>{operation}</span>)}</div>}
     <Panel icon={GitCommitHorizontal} title="История репозитория" detail="Коммиты, ветки и HEAD" type="history" actions={<button type="button" className="repository-action" onClick={onToggleGraph} aria-pressed={graphExpanded} title={graphExpanded ? 'Вернуть панели (Esc)' : 'Развернуть граф на рабочую область'}>{graphExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}{graphExpanded ? 'Вернуть панели' : 'Развернуть граф'}</button>}>{repository ? <History key={`${snapshot.session_id}:${current.path}`} state={current} previous={previous} history={history} viewKey={viewKey} /> : <Empty>{empty}</Empty>}</Panel>

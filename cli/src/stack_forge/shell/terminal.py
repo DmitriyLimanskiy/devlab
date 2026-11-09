@@ -22,20 +22,20 @@ def run_bash(
     """Запустить bash через PTY с наблюдением Git и восстановлением терминала"""
     stdin, stdout = sys.stdin.fileno(), sys.stdout.fileno()
     original = termios.tcgetattr(stdin)
-    from devlab.practice.observer import Observer
+    from stack_forge.practice.observer import Observer
 
     events, notify = os.pipe()
     os.set_inheritable(notify, True)
     with open(rc_path, "a") as rc:
         rc.write(
-            '\nPROMPT_COMMAND=\'__devlab_status=$?; printf "%s\\n" "$__devlab_status" >&'
+            '\nPROMPT_COMMAND=\'__stack_forge_status=$?; printf "%s\\n" "$__stack_forge_status" >&'
             + str(notify)
             + "'\n"
         )
-    from devlab.cli.control import LocalControl
+    from stack_forge.cli.control import LocalControl
 
     control_directory = tempfile.TemporaryDirectory(
-        prefix="devlab-control-", dir="/tmp"
+        prefix="stack-forge-control-", dir="/tmp"
     )
     control = LocalControl(os.path.join(control_directory.name, "control.sock"), None)
     pid, master = pty.fork()
@@ -43,19 +43,19 @@ def run_bash(
         try:
             os.close(events)
             control.listener.close()
-            os.environ["DEVLAB_CONTROL_SOCKET"] = str(control.path)
+            os.environ["STACK_FORGE_CONTROL_SOCKET"] = str(control.path)
             os.chdir(folder)
             os.environ["BASH_SILENCE_DEPRECATION_WARNING"] = "1"
             os.execv(bash, [bash, "--noprofile", "--rcfile", rc_path, "-i"])
         except OSError:
-            os.write(2, b"DevLab: cannot start bash\n")
+            os.write(2, b"Stack Forge: cannot start bash\n")
             os._exit(127)
 
     os.close(notify)
     # Потоки запускаются после fork: не наследуем блокировки фонового отправителя
     runtime = None
     if sender is not None:
-        from devlab.practice.runtime import PracticeRuntime
+        from stack_forge.practice.runtime import PracticeRuntime
 
         runtime = PracticeRuntime(sender, folder, snapshot)
         control.runtime = runtime

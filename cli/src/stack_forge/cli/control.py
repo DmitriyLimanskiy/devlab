@@ -4,7 +4,7 @@ import socket
 import threading
 from pathlib import Path
 
-from devlab.cli.api import ApiError
+from stack_forge.cli.api import ApiError
 
 
 class LocalControl:
@@ -46,7 +46,7 @@ class LocalControl:
                 except ApiError:
                     response = {
                         "ok": False,
-                        "error": "Сброс не завершён — проверьте связь и повторите devlab reset",
+                        "error": "Сброс не завершён — проверьте связь и повторите stack-forge reset",
                     }
                 except (OSError, ValueError, TypeError):
                     response = {
@@ -73,11 +73,11 @@ class LocalControl:
                     result = json.loads(stream.readline(4097))
             if not isinstance(result, dict) or result.get("ok") is not True:
                 raise ApiError(
-                    "Сброс не завершён — повторите devlab reset или перезапустите CLI"
+                    "Сброс не завершён — повторите stack-forge reset или перезапустите CLI"
                 )
         except (OSError, ValueError, TypeError):
             raise ApiError(
-                "Основной процесс DevLab недоступен — перезапустите CLI"
+                "Основной процесс Stack Forge недоступен — перезапустите CLI"
             ) from None
 
     def close(self):

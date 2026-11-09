@@ -136,9 +136,9 @@ function App() {
     if (path !== requestedPath) window.history.replaceState(null, '', path + window.location.search + window.location.hash)
   }, [path, requestedPath])
   const page = navigation.find(item => item.path === path)
-  useEffect(() => { document.title = `${page?.label ?? 'Страница не найдена'} — DevLab` }, [page])
+  useEffect(() => { document.title = `${page?.label ?? 'Страница не найдена'} — Stack Forge` }, [page])
   return <div className={`workbench ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="DevLab — каталог курсов"><FlaskConical size={21} /><span>Dev<span className="accent">Lab</span></span></a><span className="titlebar-caption">Практика на настоящих инструментах</span></header>
+    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="Stack Forge — каталог курсов"><FlaskConical size={21} /><span>Stack <span className="accent">Forge</span></span></a><span className="titlebar-caption">Практика на настоящих инструментах</span></header>
     <aside className="sidebar">
       <div className="sidebar-header">
         {sidebarOpen && <span>Рабочее пространство</span>}

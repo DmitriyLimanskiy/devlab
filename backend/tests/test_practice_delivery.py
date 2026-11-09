@@ -113,7 +113,10 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                         session_id=str(course.session_id),
                         generation=connection["generation"],
                         version=1,
-                        state={"kind": "no_repository", "path": "/tmp/devlab-test"},
+                        state={
+                            "kind": "no_repository",
+                            "path": "/tmp/stack-forge-test",
+                        },
                     )
                     await request("/api/v1/cli/send-snapshot", body, connection["key"])
                     self.assertEqual(
@@ -133,7 +136,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 sys.path.insert(
                     0, str(Path(__file__).resolve().parents[2] / "cli" / "src")
                 )
-                from devlab.practice.git_state import read_state
+                from stack_forge.practice.git_state import read_state
 
                 with tempfile.TemporaryDirectory() as directory:
                     repo = Path(directory)
@@ -147,7 +150,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                         )
 
                     git("init", "-b", "main")
-                    git("config", "user.name", "DevLab Test")
+                    git("config", "user.name", "Stack Forge Test")
                     git("config", "user.email", "test@example.invalid")
                     (repo / "file").write_text("first")
                     git("add", "file")
@@ -339,7 +342,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         from sqlalchemy import func, select
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from devlab.cli.api import ApiClient, ApiError, Connection
+        from stack_forge.cli.api import ApiClient, ApiError, Connection
 
         await self.prepare_courses()
         course = await self.request()
@@ -457,16 +460,16 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 queue_root = Path(directory) / "queues"
                 master, slave = pty.openpty()
                 process = subprocess.Popen(
-                    [sys.executable, "-m", "devlab"],
+                    [sys.executable, "-m", "stack_forge"],
                     stdin=slave,
                     stdout=slave,
                     stderr=slave,
                     env=dict(
                         os.environ,
                         PYTHONPATH=str(Path(__file__).resolve().parents[2] / "cli/src"),
-                        DEVLAB_SERVER_URL=f"http://127.0.0.1:{port}",
-                        DEVLAB_OFFLINE="0",
-                        DEVLAB_STATE_DIR=str(queue_root),
+                        STACK_FORGE_SERVER_URL=f"http://127.0.0.1:{port}",
+                        STACK_FORGE_OFFLINE="0",
+                        STACK_FORGE_STATE_DIR=str(queue_root),
                         NO_COLOR="1",
                     ),
                 )
@@ -535,7 +538,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     for index in range(2):
                         command = (
                             shlex.quote(sys.executable)
-                            + " -m devlab reset; printf 'RESET-DONE:%s\\n' $?\n"
+                            + " -m stack_forge reset; printf 'RESET-DONE:%s\\n' $?\n"
                         )
                         os.write(master, command.encode())
                         output = until(b"RESET-DONE:0")

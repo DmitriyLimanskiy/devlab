@@ -27,7 +27,7 @@ class NormalizedRepositoryTest(test_git_course.GitCourseTest):
         import sys
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from devlab.practice.git_state import read_state
+        from stack_forge.practice.git_state import read_state
 
         await self.prepare_courses()
         course = await self.request()

@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "devlab-cli"
+name = "stack-forge-cli"
 version = "0.1.0"
-description = "Локальная терминальная сессия DevLab"
+description = "Локальная терминальная сессия Stack Forge"
 requires-python = ">=3.11"
 dependencies = ["websockets==15.0.1"]
 
 [project.scripts]
-devlab = "devlab.main:main"
+stack-forge = "stack_forge.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

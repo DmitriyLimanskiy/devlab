@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.cli.api import Connection
-from devlab.practice.worktree import WorktreeSender
+from stack_forge.cli.api import Connection
+from stack_forge.practice.worktree import WorktreeSender
 
 
 class Client:
@@ -123,7 +123,7 @@ class WorktreeSenderTest(unittest.TestCase):
             snapshot.write_text(
                 json.dumps(
                     {
-                        "generator": "devlab-cli",
+                        "generator": "stack-forge-cli",
                         "updated_at": 1,
                         "state": {"kind": "no_repository", "path": "/old"},
                     }
@@ -144,7 +144,7 @@ class WorktreeSenderTest(unittest.TestCase):
             snapshot.write_text(
                 json.dumps(
                     {
-                        "generator": "devlab-cli",
+                        "generator": "stack-forge-cli",
                         "updated_at": time.time(),
                         "state": {"kind": "no_repository", "path": "/current"},
                     }

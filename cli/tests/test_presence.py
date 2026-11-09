@@ -4,8 +4,8 @@ import threading
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.cli.api import ApiError
-from devlab.cli.presence import PresenceReporter
+from stack_forge.cli.api import ApiError
+from stack_forge.cli.presence import PresenceReporter
 
 
 class PresenceTest(unittest.TestCase):

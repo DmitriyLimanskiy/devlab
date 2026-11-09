@@ -9,10 +9,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from devlab.cli.api import ApiError, Connection
-from devlab.practice.observer import Observer
-from devlab.practice.runtime import PracticeRuntime
-from devlab.practice.sync import SnapshotSender
+from stack_forge.cli.api import ApiError, Connection
+from stack_forge.practice.observer import Observer
+from stack_forge.practice.runtime import PracticeRuntime
+from stack_forge.practice.sync import SnapshotSender
 
 
 class PassiveWorktree:
@@ -93,7 +93,9 @@ class RuntimeTest(unittest.TestCase):
             self.client, self.connection, self.folder, root / "queues"
         )
         self.old_path = sender.pending_path
-        substitute = patch("devlab.practice.runtime.WorktreeSender", PassiveWorktree)
+        substitute = patch(
+            "stack_forge.practice.runtime.WorktreeSender", PassiveWorktree
+        )
         substitute.start()
         self.addCleanup(substitute.stop)
         self.runtime = PracticeRuntime(sender, self.folder, self.folder / "state.json")

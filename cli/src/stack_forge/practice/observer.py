@@ -6,7 +6,7 @@ import threading
 import time
 from pathlib import Path
 
-from devlab.practice.git_state import stable_state
+from stack_forge.practice.git_state import stable_state
 
 
 def fingerprint(folder, excluded=None, internal_dir=None):
@@ -114,7 +114,7 @@ class Observer:
         if state != self.state:
             self.version += 1
             payload = {
-                "generator": "devlab-cli",
+                "generator": "stack-forge-cli",
                 "version": self.version,
                 "updated_at": time.time(),
                 "state": state,
@@ -124,7 +124,7 @@ class Observer:
                 with tempfile.NamedTemporaryFile(
                     mode="w",
                     dir=self.snapshot.parent,
-                    prefix=".devlab-state-",
+                    prefix=".stack-forge-state-",
                     delete=False,
                 ) as stream:
                     temporary = Path(stream.name)
