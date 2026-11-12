@@ -161,7 +161,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     self.assertEqual(json.loads(await ws.recv())["type"], "ready")
                     saved = (await request(path))["snapshot"]
                     self.assertEqual(saved["version"], 2)
-                    from app.api.cli.schemas.snapshot import SnapshotReq
+                    from app.api.old_cli.schemas.snapshot import SnapshotReq
 
                     self.assertEqual(
                         saved["state"],
@@ -183,9 +183,9 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_history_order_pagination_and_conflicting_retries(self):
         """Проверить порядок истории, границы страниц и конфликтующие повторы"""
-        from app.api.cli.routers.cli import cli_connect, cli_send_state
-        from app.api.cli.schemas.cli import CliConnectReq
-        from app.api.cli.schemas.snapshot import SnapshotReq
+        from app.api.old_cli.routers.cli import cli_connect, cli_send_state
+        from app.api.old_cli.schemas.cli import CliConnectReq
+        from app.api.old_cli.schemas.snapshot import SnapshotReq
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
 
@@ -247,9 +247,9 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_failed_commit_does_not_publish(self):
         """Проверить отсутствие события при неудачном commit в БД"""
-        from app.api.cli.routers.cli import cli_connect, cli_send_state
-        from app.api.cli.schemas.cli import CliConnectReq
-        from app.api.cli.schemas.snapshot import SnapshotReq
+        from app.api.old_cli.routers.cli import cli_connect, cli_send_state
+        from app.api.old_cli.schemas.cli import CliConnectReq
+        from app.api.old_cli.schemas.snapshot import SnapshotReq
         from app.api.practice.services.practice_events import events
         from fastapi.security import HTTPAuthorizationCredentials
 
@@ -287,13 +287,13 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_presence_auth_and_no_snapshot_versions(self):
         """Проверить авторизацию присутствия без увеличения версии снимка"""
-        from app.api.cli.routers.cli import (
+        from app.api.old_cli.routers.cli import (
             cli_connect,
             cli_disconnect,
             cli_heartbeat,
         )
-        from app.api.cli.schemas.cli import CliConnectReq, CliPresenceReq
-        from app.api.cli.services.cli_presence import presence
+        from app.api.old_cli.schemas.cli import CliConnectReq, CliPresenceReq
+        from app.api.old_cli.services.cli_presence import presence
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
 

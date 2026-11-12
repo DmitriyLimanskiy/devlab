@@ -1,7 +1,7 @@
 import hashlib
 import secrets
 
-from app.api.cli.services.live_worktree import live_worktree
+from app.api.old_cli.services.live_worktree import live_worktree
 from app.api.practice.models.practice import PracticeSession
 from app.db.session import get_session_factory
 from fastapi import HTTPException

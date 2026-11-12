@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from uuid import uuid4
 
-from app.api.cli.schemas.snapshot import SnapshotReq
+from app.api.old_cli.schemas.snapshot import SnapshotReq
 from git_snapshot_fixture import read_state
 from pydantic import ValidationError
 

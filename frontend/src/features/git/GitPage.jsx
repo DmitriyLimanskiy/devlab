@@ -2,15 +2,11 @@ import { useState } from 'react'
 import { ApiState } from '../../shared/ApiState'
 import { useApi } from '../../shared/useApi'
 import { api, gitCoursePage } from '../../shared/routes'
-import { parseCatalog } from '../catalog/catalogData'
-import { GitCourse } from './GitCourse'
-import { parseGitCourse } from './courseSteps'
+import { courseStatusLabels, parseCatalog } from '../catalog/catalogData'
+import { AuthForm } from '../auth/AuthForm'
+import { Badge } from '../../shared/ui'
 
-// Открыть сессию выбранного курса и передать её данные странице Git
-function GitPractice({ course }) {
-  const state = useApi(api.git, parseGitCourse, 'POST', JSON.stringify({ course_slug: course.id }))
-  return <ApiState state={state}>{practice => <GitCourse title={course.title} steps={practice.steps} sessionId={practice.session_id} />}</ApiState>
-}
+const parseGitCourses = data => parseCatalog(data).filter(course => course.id.startsWith('git-'))
 
 // Показать вкладки Git-курсов и синхронизировать выбранный курс с URL
 function GitTabs({ courses }) {
@@ -42,13 +38,21 @@ function GitTabs({ courses }) {
       </button>)}
     </div>
     <div className="git-course-panel" id="git-course-panel" role="tabpanel" aria-labelledby={`git-tab-${course.id}`} tabIndex={0}>
-      <GitPractice key={course.id} course={course} />
+      <article className="course-details">
+        <Badge>{courseStatusLabels[course.status]}</Badge>
+        <h1>{course.title}</h1>
+        <p>{course.description.replace(/\.+\s*$/, '')}</p>
+      </article>
     </div>
   </div>
 }
 
 // Загрузить список Git-курсов для вкладок страницы
-export function GitPage() {
-  const state = useApi(api.git, parseCatalog)
+export function GitPage({ onLogin }) {
+  const state = useApi(api.catalog, parseGitCourses)
+  if (state.status === 401) return <AuthForm onLogin={() => {
+    state.retry()
+    onLogin()
+  }} />
   return <ApiState state={state}>{courses => <GitTabs courses={courses} />}</ApiState>
 }

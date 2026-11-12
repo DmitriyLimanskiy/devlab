@@ -9,7 +9,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import uvicorn
-from app.api.cli.services.live_worktree import live_worktree
+from app.api.old_cli.services.live_worktree import live_worktree
 from app.main import app
 from websockets.asyncio.client import connect
 

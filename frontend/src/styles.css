@@ -55,157 +55,17 @@ p { color: var(--text-secondary); line-height: 1.8; margin: 0; font-size: 14px; 
   .sidebar-collapsed .sidebar { width: 52px; box-shadow: none; }
 }
 
-/* Рабочее пространство Git: терминальные панели из визуального референса */
 .course-open { display: inline-flex; align-items: center; justify-content: space-between; align-self: stretch; gap: 8px; color: var(--accent); margin-top: auto; padding: 16px 0 0; border-top: 1px solid var(--border-soft); font-size: 13px; white-space: nowrap; }
 .course-open:hover { color: var(--text-primary); }
-.canvas-git { display: flex; padding: 12px; min-height: 0; overflow: hidden; }
-.git-course { width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; }
-.git-layout { display: grid; grid-template-columns: clamp(210px, 22%, 270px) minmax(0, 1fr); gap: 12px; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
-.practice-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; background: var(--bg-panel); }
-.practice-panel > * { flex-shrink: 0; }
-.practice-panel h2, .repo-panel h2 { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; margin: 0; }
-.practice-panel h2 svg { color: var(--accent); }
-.practice-panel p, .terminal-preview p, .repo-empty p { font-size: 13px; }
-.practice-steps { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
-.practice-steps li { min-width: 0; }
-.practice-step { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 58px; padding: 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); background: var(--bg-base); color: var(--text-primary); text-align: left; line-height: 1.45; overflow-wrap: anywhere; cursor: pointer; }
-.practice-step-number { display: grid; place-items: center; flex-shrink: 0; width: 25px; height: 25px; border-radius: 50%; background: var(--success); color: var(--bg-base); font: 600 12px var(--font-mono); }
-.practice-step-title { min-width: 0; font-size: 14px; font-weight: 600; }
-.practice-step:hover { border-color: var(--border-accent); color: var(--text-primary); }
-.practice-step[aria-pressed="true"] { border-color: var(--accent); background: var(--bg-selected); color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
-code { font-family: var(--font-mono); }
-.practice-steps code { display: inline-block; color: var(--accent); padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel); }
-.practice-note { border-top: 1px solid var(--border-soft); padding-top: 22px; }
-.practice-note > code { color: var(--warning); font-size: 14px; }
-.practice-note p { margin-top: 10px; }
-.practice-footer { margin-top: auto; padding-top: 16px; }
-.repository-workspace { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; container-type: inline-size; container-name: repository; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-panel); padding: 12px; }
-.repository-workspace > * { min-width: 0; flex-shrink: 0; }
-.repository-toolbar, .repo-panel header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.repository-toolbar { padding: 2px 0 4px; font-size: 14px; }
-.repository-toolbar > span { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; overflow-wrap: anywhere; }
-.status { display: inline-flex; align-items: center; gap: 7px; color: var(--text-secondary); font: 12px var(--font-mono); }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
-.terminal-preview, .repo-panel { border: 1px solid var(--border); background: var(--bg-base); border-radius: var(--radius-md); overflow: hidden; }
-.terminal-label { display: flex; gap: 8px; align-items: center; background: var(--bg-raised); border-bottom: 1px solid var(--border); padding: 9px 14px; color: var(--text-muted); font: 12px var(--font-mono); }
-.terminal-preview > code { display: block; font-size: 16px; padding: 15px 18px 6px; }
-.terminal-preview p { padding: 0 18px 15px; }
-.repo-panel { display: flex; flex-direction: column; min-width: 0; }
-.repo-panel header { padding: 12px; }
-.repo-panel header > span { color: var(--text-muted); font: 11px var(--font-mono); }
-.repo-panel h2 { min-width: 0; overflow-wrap: anywhere; }
-.repo-panel h2 svg { color: var(--text-secondary); flex-shrink: 0; }
-.repo-panel header > span { max-width: 100%; overflow-wrap: anywhere; }
-.repo-empty > svg { flex-shrink: 0; }
-.repo-empty { flex: 1; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; padding: 14px 20px; color: var(--text-muted); }
-@media (max-width: 1000px) {
-  .git-layout { grid-template-columns: 210px minmax(0, 1fr); gap: 12px; }
-}
-@media (max-width: 760px) {
- .canvas-git { padding: 12px; }
-  .git-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 36%) minmax(0, 1fr); }
-  .practice-footer { margin-top: 0; }
-  .repository-workspace { padding: 12px; }
-}
-
-.step-body { min-width: 0; overflow-wrap: anywhere; }
-.step-blocks { display: grid; gap: 10px; }
-.step-blocks p { white-space: pre-wrap; }
-.step-blocks pre { margin: 0; max-width: 100%; overflow-x: auto; }
-.step-description { min-width: 0; flex-shrink: 0; padding: 12px; border: 1px solid var(--success); border-left-width: 3px; border-radius: var(--radius-sm); background: var(--bg-base); }
-.step-description-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; margin-bottom: 8px; }
-.step-description-heading h2 { display: flex; align-items: center; gap: 9px; min-width: 0; margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-.step-description-heading h2 svg { flex-shrink: 0; color: var(--accent); }
-.step-description-heading h2 span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.step-description-actions { display: flex; justify-content: center; margin-top: 8px; }
-.step-description-toggle { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 5px 6px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--accent); font-size: 12px; cursor: pointer; }
-.step-description-toggle:hover { background: var(--bg-selected); }
-.step-description-viewport { height: 112px; overflow: hidden; transition: height 240ms ease; overflow-anchor: none; scrollbar-gutter: stable; }
-.step-description-viewport.expanded { overflow: auto; }
-.step-description-viewport.has-overflow { mask-image: linear-gradient(to bottom, black calc(100% - 22px), transparent); }
-.step-description-content { min-width: 0; padding-bottom: 4px; overflow-wrap: anywhere; }
-.step-description-content p { font-size: 13px; line-height: 1.7; }
-.step-description-content pre { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-panel); color: var(--warning); font-size: 13px; }
-@media (prefers-reduced-motion: reduce) { .step-description-viewport { transition: none; } }
-.practice-steps .step-blocks code { display: block; width: max-content; min-width: 100%; }
-.steps-empty { margin: 24px 0; }
-
-.practice-session { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-soft); }
-.practice-session > span { color: var(--text-muted); font-size: 11px; }
-.practice-session > code { display: block; margin: 8px 0; color: var(--text-secondary); font-size: 11px; overflow-wrap: anywhere; }
-
-/* Состояние репозитория: стабильные ключи сохраняют строки при обновлении */
-.snapshot-meta { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); }
-.snapshot-meta p { margin: 4px 0; }
-.snapshot-meta code { overflow-wrap: anywhere; }
-.connection-note { color: var(--text-muted); font-size: 11px; }
-.git-summary { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; font-size: 12px; }
-.git-summary > span { display: inline-flex; align-items: center; gap: 6px; overflow-wrap: anywhere; min-width: 0; }
-.operation, .file-conflict .file-status { color: var(--warning); }
-.history-scroll { overflow: auto; flex: 1; min-height: 180px; }
-.history-scroll:focus-visible { outline: 1px solid var(--accent); outline-offset: -2px; }
-.commit-history { position: relative; min-width: 100%; }
-.commit-graph { position: absolute; inset: 0; overflow: visible; }
-.commit-graph path { fill: none; stroke-width: 2; opacity: .8; transition: d var(--motion-graph) ease; }
-.commit-graph .graph-boundary { stroke-dasharray: 4 4; opacity: .4; }
-.commit-graph circle { stroke-width: 2; transition: cy var(--motion-graph) ease, cx var(--motion-graph) ease, r var(--motion-marker) ease; }
-.commit-list { list-style: none; padding: 0; margin: 0; }
-.commit-list li { position: absolute; width: 150px; transform: translate(-50%, 0); padding: 17px 4px 4px; text-align: center; font-size: 12px; transition: left var(--motion-graph) ease, top var(--motion-graph) ease; }
-.commit-list code { color: var(--text-primary); }
-.commit-labels { position: absolute; bottom: calc(100% - 2px); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px; max-width: 150px; }
-.ref-label { display: inline-block; color: var(--branch-color, var(--accent)); border: 1px solid currentColor; border-radius: 4px; padding: 2px 6px; font-size: 10px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--bg-base); }
-.head-label { color: var(--success); }
-.commit-detail { display: block; color: var(--text-muted); font-size: 10px; margin-top: 4px; }
-.history-note { padding: 4px 16px; overflow-wrap: anywhere; font-size: 11px; color: var(--text-muted); }
-.git-files { padding: 0; margin: 0; list-style: none; }
-.git-files li { display: flex; align-items: baseline; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--border-soft); font-size: 12px; }
-.git-files code { overflow-wrap: anywhere; min-width: 0; }
-.file-status { color: var(--accent); min-width: 112px; }
-.original-path { color: var(--text-muted); }
-.git-change { animation: git-change var(--motion-change) ease-out; }
-@keyframes git-change { from { background: var(--change-highlight); } to { background: transparent; } }
-@media (max-width: 600px) { .git-files li { flex-direction: column; gap: 4px; } .repository-toolbar { flex-wrap: wrap; gap: 8px; } }
-@media (prefers-reduced-motion: reduce) { .git-change { animation: none; } .commit-graph circle { transition: none; } }
-
-.repo-panel-index, .repo-panel-files { flex: 1; min-height: 130px; max-height: 360px; overflow: auto; }
-.history-scroll, .repo-panel-index, .repo-panel-files, .step-description-viewport.expanded { overscroll-behavior: contain; }
-@media (prefers-reduced-motion: reduce) { .commit-graph path { transition: none; } }
-
-.git-repository { display: contents; }
-
-.status-active { color: var(--success); }
-.status-active .status-dot { background: var(--success); box-shadow: 0 0 7px color-mix(in srgb, var(--success) 30%, transparent); }
-.directory-info { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-base); }
-.directory-info > span { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px; }
-.directory-info code { color: var(--text-primary); font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
-.snapshot-warning { color: var(--warning); font-size: 12px; }
-.git-summary { padding: 2px 0; }
-.git-file-flow { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); align-items: stretch; gap: 10px; min-width: 0; min-height: 220px; flex: none; }
-.staging-chevron { align-self: center; color: var(--accent); }
-.git-file-flow .repo-panel { min-height: 220px; max-height: 400px; }
-.git-file-flow .repo-panel header { padding: 12px; align-items: flex-start; flex-direction: column; gap: 5px; }
-.git-file-flow .git-files li { flex-direction: column; gap: 5px; padding: 10px 14px; }
-@media (max-width: 600px) {
-  .git-file-flow { grid-template-columns: minmax(0, 1fr); }
-  .staging-chevron { justify-self: center; transform: rotate(90deg); }
-}
-@container repository (max-width: 520px) {
-  .git-file-flow { grid-template-columns: minmax(0, 1fr); }
-  .staging-chevron { justify-self: center; transform: rotate(90deg); }
-}
-@media (prefers-reduced-motion: reduce) { .commit-list li { transition: none; } }
-
-
-.commit-labels { max-height: 60px; overflow-y: auto; }
-
-.historical-ref { border-style: dashed; opacity: .8; }
-
+.canvas-git { display: block; padding: clamp(18px, 4vw, 36px); }
 .git-page { display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; }
 .course-tabs { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
 .course-tabs button { max-width: 100%; padding: 12px 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); overflow-wrap: anywhere; cursor: pointer; }
 .course-tabs button:hover { color: var(--text-primary); background: var(--bg-raised); }
 .course-tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg-selected); }
-.git-course-panel { flex: 1; min-width: 0; min-height: 0; }
+.git-course-panel { min-width: 0; }
+.course-details { padding: 24px 0; overflow-wrap: anywhere; }
+.course-details p { max-width: 70ch; }
 .git-course-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Навигация остаётся тихой, схема ветвления задаёт характер каталога */
@@ -214,9 +74,6 @@ code { font-family: var(--font-mono); }
 .brand { font-size: 19px; letter-spacing: -.6px; }
 .brand > svg { width: 28px; height: 28px; padding: 4px; border: 1px solid var(--border-accent); border-radius: 7px; }
 .sidebar nav { overflow-y: auto; }
-.sidebar-note { margin: auto 8px 20px; padding-top: 20px; border-top: 1px solid var(--border); }
-.sidebar-note p { margin-top: 10px; font-size: 12px; line-height: 1.6; color: var(--text-muted); }
-.sidebar-terminal { color: var(--warning); font: 18px var(--font-mono); }
 .catalog-count { border: 1px solid var(--border); padding: 8px 12px; border-radius: var(--radius-sm); font-family: var(--font-ui); }
 .course { position: relative; overflow: hidden; }
 .course:focus-within { border-color: var(--accent); }
@@ -229,25 +86,8 @@ code { font-family: var(--font-mono); }
 .course-diagram i:nth-of-type(3) { left: 51%; top: 24px; border-color: var(--success); }
 .course-diagram i:nth-of-type(4) { left: 74%; }
 .course-diagram i:nth-of-type(5) { left: 88%; background: var(--accent); }
-.practice-panel h2 { padding: 4px 0 12px; border-bottom: 1px solid var(--border-soft); }
-.practice-step { min-height: 62px; }
-.practice-step[aria-pressed="true"] .practice-step-title { color: var(--text-primary); }
-.practice-footer { border-top: 1px solid var(--border-soft); font-size: 12px; }
-.practice-footer code { color: var(--warning); }
-.repository-toolbar { padding-block: 8px; font-size: 15px; font-weight: 600; }
-.status { font-weight: 400; line-height: 1.5; }
-.status-dot { flex-shrink: 0; }
-.repo-panel header { background: var(--bg-panel); border-bottom: 1px solid var(--border-soft); }
-.repo-empty { gap: 10px; padding: 24px; }
-.repo-empty > svg { color: var(--border-accent); }
-.repo-empty p { max-width: 36ch; line-height: 1.7; }
-.git-file-flow .repo-panel header { gap: 7px; }
-.git-files code { font-size: 12px; line-height: 1.6; }
-.file-status { font: 11px var(--font-ui); }
 .course-tabs button { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
 .course-tabs button[aria-selected="true"] { background: var(--bg-panel); color: var(--text-primary); }
-.step-description-heading h2 { font-size: 15px; }
-.step-description-heading h2 svg { color: var(--success); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 @media (max-width: 700px) {
@@ -257,17 +97,13 @@ code { font-family: var(--font-mono); }
 }
 @media (max-width: 480px) {
   .sidebar-header { min-height: 54px; }
-  .sidebar-note { display: none; }
   .course { padding: 20px; }
   .course-diagram { margin-inline: -20px; }
-  .step-description-heading { flex-wrap: wrap; gap: 4px; }
-  .step-description-heading h2 { width: 100%; }
   .course-tabs button { padding-inline: 12px; }
 }
 
 .course-diagram-general .diagram-branch,
 .course-diagram-general i:nth-of-type(3) { display: none; }
-.step-blocks p { max-width: 78ch; }
 
 /* Жидкое стекло: рассеянный свет под неподвижными парящими поверхностями */
 .workbench {
@@ -291,7 +127,7 @@ code { font-family: var(--font-mono); }
 }
 .sidebar { box-shadow: 8px 0 28px -22px #000, inset 1px 0 0 rgb(255 255 255 / 3%); }
 .brand > svg { background: var(--glass-reflection), var(--glass-control); box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 10px #0003; }
-.course, .practice-panel, .repository-workspace {
+.course {
   border-color: var(--glass-border);
   border-radius: var(--glass-radius);
   background: var(--glass-reflection), var(--glass-surface);
@@ -299,7 +135,6 @@ code { font-family: var(--font-mono); }
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(135%);
   backdrop-filter: blur(var(--glass-blur)) saturate(135%);
 }
-.repository-workspace { background: var(--glass-reflection), rgb(12 22 32 / 48%); }
 .course { transition: transform var(--motion-surface) ease, box-shadow var(--motion-surface) ease, border-color var(--motion-surface) ease; }
 .course-diagram {
   background: radial-gradient(ellipse at 50% 100%, rgb(72 204 224 / 8%), transparent 75%), rgb(6 16 25 / 32%);
@@ -307,36 +142,6 @@ code { font-family: var(--font-mono); }
   box-shadow: inset 0 1px 12px rgb(0 0 0 / 12%);
 }
 .course-diagram i { box-shadow: 0 2px 8px rgb(72 204 224 / 20%); }
-.repo-panel, .step-description, .directory-info {
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  background: var(--glass-reflection), rgb(19 33 46 / 68%);
-  box-shadow: 0 10px 20px -14px #000, inset 0 1px 0 rgb(221 245 255 / 10%);
-}
-.step-description {
-  border-left: 3px solid var(--success);
-  background: linear-gradient(125deg, rgb(98 213 161 / 7%), transparent 55%), var(--glass-reflection), rgb(18 32 42 / 78%);
-}
-.repo-panel header {
-  background: linear-gradient(180deg, rgb(221 245 255 / 5%), transparent), rgb(26 43 57 / 42%);
-  border-color: rgb(169 210 235 / 10%);
-}
-.directory-info { background: var(--glass-reflection), rgb(15 28 40 / 52%); }
-.practice-step, .course-tabs button, .nav-item, .icon-button, .step-description-toggle {
-  transition: background-color var(--motion-surface) ease, border-color var(--motion-surface) ease, box-shadow var(--motion-surface) ease, transform var(--motion-surface) ease;
-}
-.practice-step {
-  border-color: rgb(169 210 235 / 12%);
-  border-radius: 10px;
-  background: var(--glass-reflection), rgb(17 30 42 / 65%);
-  box-shadow: 0 4px 10px -6px #000, inset 0 1px 0 rgb(221 245 255 / 6%);
-}
-.practice-step[aria-pressed="true"] {
-  border-color: rgb(72 204 224 / 65%);
-  background: linear-gradient(125deg, rgb(72 204 224 / 17%), rgb(72 204 224 / 4%)), rgb(18 36 48 / 82%);
-  box-shadow: inset 3px 0 var(--accent), inset 0 1px 0 rgb(221 245 255 / 14%), 0 6px 14px -8px #000;
-}
-.practice-step-number { box-shadow: inset 0 1px 0 rgb(255 255 255 / 40%), 0 3px 9px rgb(0 0 0 / 25%); }
 .course-tabs { gap: 6px; border-color: transparent; }
 .course-tabs button {
   border: 1px solid transparent;
@@ -354,29 +159,26 @@ code { font-family: var(--font-mono); }
   box-shadow: inset 2px 0 var(--accent), inset 0 1px 0 rgb(221 245 255 / 8%), 0 4px 12px -8px #000;
 }
 .badge, .catalog-count { border-color: var(--glass-border); background: rgb(13 25 36 / 48%); box-shadow: inset 0 1px 0 rgb(221 245 255 / 6%); }
-.ref-label { background: rgb(16 29 40 / 96%); box-shadow: 0 3px 8px #0005, inset 0 1px 0 rgb(221 245 255 / 10%); }
-.step-description-content pre { background: rgb(7 17 26 / 54%); border-color: rgb(169 210 235 / 12%); box-shadow: inset 0 2px 6px #0002; }
 @media (hover: hover) and (pointer: fine) {
   .course:hover, .course:focus-within { transform: translateY(-3px); border-color: rgb(169 210 235 / 34%); box-shadow: var(--glass-shadow-raised); }
-  .practice-step:hover { transform: translateY(-1px); border-color: rgb(72 204 224 / 48%); box-shadow: 0 7px 14px -8px #000, inset 0 1px 0 var(--glass-highlight); }
-  .icon-button:hover, .step-description-toggle:hover { background: var(--glass-control); box-shadow: inset 0 1px 0 var(--glass-highlight); }
+  .icon-button:hover { background: var(--glass-control); box-shadow: inset 0 1px 0 var(--glass-highlight); }
 }
 @media (max-width: 480px) {
   .sidebar { background: rgb(12 21 31 / 94%); }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .titlebar, .sidebar, .course, .practice-panel, .repository-workspace { background: var(--glass-reflection), #13202c; }
+  .titlebar, .sidebar, .course { background: var(--glass-reflection), #13202c; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .titlebar, .sidebar, .course, .practice-panel, .repository-workspace, .repo-panel, .step-description, .directory-info {
+  .titlebar, .sidebar, .course {
     background: #13202c;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .course, .practice-step, .course-tabs button, .nav-item, .icon-button, .step-description-toggle { transition: none; }
-  .course:hover, .course:focus-within, .practice-step:hover { transform: none; }
+  .course, .course-tabs button, .nav-item, .icon-button { transition: none; }
+  .course:hover, .course:focus-within { transform: none; }
 }
 
 
@@ -390,129 +192,91 @@ code { font-family: var(--font-mono); }
 .catalog > .api-error { flex: 1; height: auto; }
 
 
-/* Граф занимает оставшееся пространство, вспомогательные панели раскрываются отдельно */
-.git-layout { grid-template-columns: 240px minmax(0, 1fr); }
-.graph-expanded .git-layout { grid-template-columns: minmax(0, 1fr); }
-.practice-panel[hidden] { display: none; }
-.repository-workspace { overflow: hidden; }
-.repository-toolbar { flex: 0 0 auto; padding-block: 0; min-height: 32px; }
-.repository-toolbar-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; }
-.repository-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 6px 10px; border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-secondary); background: var(--glass-control); font-size: 12px; cursor: pointer; }
-.repository-action:hover { border-color: var(--accent); color: var(--text-primary); }
-.directory-info { flex-wrap: nowrap; min-height: 34px; padding-block: 6px; }
-.directory-info > span { flex-shrink: 0; }
-.directory-info code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.git-repository { display: flex; flex-direction: column; flex: 1 1 0; gap: 8px; min-height: 0; }
-.git-summary { flex: 0 0 auto; }
-.repo-panel-history { flex: 1 1 0; min-height: 180px; overflow: hidden; }
-.repo-panel-history > header { flex: 0 0 auto; padding-block: 8px; }
-.repo-panel-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 12px; min-width: 0; }
-.repo-panel-actions > span { color: var(--text-muted); font: 11px var(--font-mono); }
-.history-scroll { min-height: 0; max-height: none; flex: 1 1 0; }
-.history-note { flex: 0 0 auto; }
-.worktree-drawer { flex: 0 0 auto; min-width: 0; border: 1px solid var(--glass-border); border-radius: 12px; background: rgb(15 28 40 / 52%); overflow: hidden; }
-.worktree-drawer > summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 40px; padding: 9px 12px; color: var(--text-primary); cursor: pointer; font-size: 13px; list-style: none; }
-.worktree-drawer > summary::-webkit-details-marker { display: none; }
-.worktree-drawer > summary > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
-.worktree-summary { color: var(--text-muted); font-size: 12px; }
-.drawer-chevron { flex-shrink: 0; margin-left: auto; }
-.worktree-drawer[open] .drawer-chevron { transform: rotate(180deg); }
-.worktree-drawer .snapshot-warning { padding: 8px 12px; }
-.worktree-drawer .git-file-flow { height: clamp(180px, 27dvh, 240px); min-height: 0; gap: 8px; padding: 0 8px 8px; }
-.worktree-drawer .git-file-flow .repo-panel { min-height: 0; max-height: none; overflow: hidden; }
-.worktree-drawer .repo-panel > header { flex: 0 0 auto; padding: 8px 12px; }
-.worktree-drawer .git-files { flex: 1 1 0; min-height: 0; overflow: auto; }
-.worktree-drawer .repo-empty { min-height: 0; padding: 12px; }
-.graph-expanded .worktree-drawer { display: none; }
-@media (max-width: 1000px) { .git-layout { grid-template-columns: 220px minmax(0, 1fr); } }
-@media (max-width: 760px) {
-  .git-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .practice-panel { max-height: 32dvh; }
-  .graph-expanded .git-layout { grid-template-rows: minmax(0, 1fr); }
-  .repository-toolbar { align-items: flex-start; gap: 6px; }
-  .repository-toolbar-actions { justify-content: flex-start; gap: 6px 12px; }
-  .directory-info > span { font-size: 0; gap: 0; }
-  .directory-info > span svg { width: 16px; height: 16px; }
-  .repo-panel-history > header { align-items: flex-start; gap: 8px; }
-  .repo-panel-history .repo-panel-actions > span { display: none; }
-}
-@container repository (max-width: 520px) {
-  .worktree-drawer .git-file-flow { height: clamp(210px, 34dvh, 290px); grid-template-rows: minmax(0, 1fr) 16px minmax(0, 1fr); gap: 4px; }
-  .worktree-drawer .repo-panel-actions > span { display: none; }
-  .worktree-drawer .repo-panel > header { flex-direction: row; }
-}
-@media (max-height: 650px) {
-  .repository-workspace { overflow: auto; }
-  .git-repository { flex: 1 0 340px; }
-  .graph-expanded .git-repository { flex: 1 1 0; }
-  .graph-expanded .repo-panel-history { min-height: 120px; }
+.auth-panel {
+  width: min(100%, 420px);
+  margin: clamp(12px, 8vh, 72px) auto;
+  padding: clamp(16px, 4vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
 }
 
-.graph-controls { display: flex; align-items: center; flex: 0 0 auto; flex-wrap: wrap; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--border-soft); }
-.graph-control { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 30px; min-height: 30px; padding: 5px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer; }
-.graph-control:hover, .graph-control[aria-pressed="true"] { border-color: var(--glass-border); background: var(--glass-control); color: var(--text-primary); }
-.graph-control:disabled { opacity: .35; cursor: default; }
-.graph-zoom { min-width: 54px; font-family: var(--font-mono); }
-.graph-head { margin-left: auto; }
-.graph-stage { position: relative; }
-.graph-stage .commit-history { min-width: 0; transform-origin: top left; }
-
-.worktree-drawer .git-files li { flex-direction: row; align-items: baseline; gap: 8px; padding: 5px 12px; }
-.worktree-drawer .file-status { flex: 0 0 auto; min-width: 0; white-space: nowrap; }
-.worktree-drawer .git-files code { flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
-
-.repository-workspace > .step-description { padding: 6px 12px; }
-.repository-workspace > .step-description .step-description-heading { margin-bottom: 0; flex-wrap: nowrap; gap: 8px; }
-.repository-workspace > .step-description .step-description-heading h2 { width: auto; }
-.repository-workspace > .step-description .step-description-viewport { height: auto; max-height: min(360px, 35dvh); margin-top: 8px; }
-
-.repository-workspace > .step-description .step-description-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
-.repository-workspace > .step-description .step-description-toggle { grid-column: 2; justify-self: center; }
-
-/* Markdown описания шага: отдельные разделы, списки и команды */
-.step-markdown { max-width: 90ch; padding: 4px 8px 12px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.75; }
-.step-markdown > * { margin: 0 0 12px; }
-.step-markdown > :last-child { margin-bottom: 0; }
-.step-markdown :is(h1, h2, h3, h4, h5, h6) { margin: 20px 0 8px; color: var(--text-primary); font-size: 14px; line-height: 1.5; font-weight: 600; }
-.step-markdown > :first-child { margin-top: 0; }
-.step-markdown :is(h1, h2) { font-size: 15px; padding-bottom: 6px; border-bottom: 1px solid var(--border-soft); }
-.step-markdown :is(ul, ol) { padding-left: 24px; }
-.step-markdown li { margin-block: 5px; }
-.step-markdown li > p { margin-block: 4px; }
-.step-markdown strong { color: var(--text-primary); font-weight: 600; }
-.step-markdown a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
-.step-markdown :not(pre) > code { padding: 2px 5px; border-radius: 4px; background: var(--glass-control); color: var(--warning); font-size: 12px; }
-.step-markdown pre { max-width: 100%; overflow-x: auto; line-height: 1.6; white-space: pre; }
-.step-markdown pre code { font-size: 12px; }
-.step-markdown blockquote { margin-inline: 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--glass-control); }
-.step-markdown blockquote > :last-child { margin-bottom: 0; }
-.step-markdown hr { border: 0; border-top: 1px solid var(--border-soft); margin-block: 20px; }
-
-/* Чтение шага в основном поле без смещения соседних блоков */
-.repository-workspace { position: relative; }
-.step-reader { position: absolute; z-index: 5; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; border-radius: 0; color: var(--text-primary); background: var(--bg-base); }
-.step-reader:not([hidden]) { display: flex; flex-direction: column; }
-.step-reader[hidden] { display: none; }
-.step-reader-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: 0 0 auto; padding: 16px 24px; border-bottom: 1px solid var(--border-soft); background: var(--bg-panel); }
-.step-reader-heading h2 { display: flex; align-items: center; gap: 10px; min-width: 0; margin: 0; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
-.step-reader-heading h2 svg { flex-shrink: 0; color: var(--success); }
-.step-reader-heading button { flex-shrink: 0; }
-.step-reader-body { flex: 1 1 0; min-height: 0; padding: 24px; overflow: auto; overscroll-behavior: contain; }
-.step-reader-body > :is(.step-markdown, .step-blocks) { width: 100%; max-width: 90ch; margin-inline: auto; }
-.step-reader-body .step-markdown { padding-right: 0; }
-@media (max-width: 600px) {
-  .step-reader-heading { gap: 12px; padding: 12px; align-items: flex-start; }
-  .step-reader-body { padding: 16px 12px; }
+.auth-panel h1 {
+  margin: 0 0 24px;
+  font-size: 24px;
 }
 
-.step-reader-actions, .step-font-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.step-reader-actions { justify-content: flex-end; }
-.step-font-controls { flex-wrap: nowrap; }
-.step-font-controls span { min-width: 38px; color: var(--text-muted); font-size: 12px; text-align: center; }
-.step-font-controls button:disabled { opacity: .4; cursor: default; }
-.step-reader-body { font-size: var(--step-reading-font-size); line-height: 1.75; }
-.step-reader-body :is(.step-markdown, .step-blocks), .step-reader-body p { font-size: inherit; line-height: inherit; }
-.step-reader-body .step-markdown :is(h1, h2, h3, h4, h5, h6) { font-size: 1.125em; }
-.step-reader-body .step-markdown code, .step-reader-body pre { font-size: .875em; }
-.step-reader-body .step-markdown pre code { font-size: inherit; }
-@media (max-width: 760px) { .step-reader-heading { flex-wrap: wrap; padding: 12px; gap: 8px; } }
+.auth-form, .auth-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-form {
+  gap: 16px;
+}
+
+.auth-form label {
+  color: var(--text-secondary);
+}
+
+.auth-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.auth-form p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.auth-form .auth-error {
+  color: var(--warning);
+}
+
+.auth-form .primary-link {
+  margin: 0;
+}
+
+.auth-switch {
+  justify-self: center;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+}
+
+.auth-form button:enabled {
+  cursor: pointer;
+}
+
+.auth-form button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.titlebar-auth {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titlebar-auth [role="alert"] {
+  color: var(--warning);
+}
+
+.titlebar-auth .primary-link {
+  margin: 0;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.titlebar-auth button:enabled { cursor: pointer; }
+.titlebar-auth button:disabled { cursor: wait; opacity: .65; }

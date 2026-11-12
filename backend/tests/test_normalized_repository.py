@@ -3,9 +3,9 @@ import tempfile
 from pathlib import Path
 
 import test_git_course
-from app.api.cli.routers.cli import cli_connect, cli_send_state
-from app.api.cli.schemas.cli import CliConnectReq
-from app.api.cli.schemas.snapshot import SnapshotReq
+from app.api.old_cli.routers.cli import cli_connect, cli_send_state
+from app.api.old_cli.schemas.cli import CliConnectReq
+from app.api.old_cli.schemas.snapshot import SnapshotReq
 from app.api.practice.models.practice import PracticeSnapshot
 from app.api.practice.models.repository import (
     GraphEvent,

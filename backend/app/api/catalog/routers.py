@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from app.api.auth.dependencies import get_current_user
 from app.api.catalog.schemas import CatalogRes
 from app.db.models import Course
 from app.db.session import get_session
@@ -10,7 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(prefix="/api/v1", tags=["catalog"])
 
 
-@router.get("/catalog", response_model=list[CatalogRes])
+@router.get(
+    "/catalog",
+    response_model=list[CatalogRes],
+    dependencies=[Depends(get_current_user)],
+)
 async def catalog(
     db: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[CatalogRes]:

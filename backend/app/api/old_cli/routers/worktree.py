@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from app.api.cli.routers.cli import bearer
-from app.api.cli.schemas.worktree import WorktreeAck, WorktreeReq
-from app.api.cli.services.authorization import CliAuthorization
-from app.api.cli.services.live_worktree import live_worktree
+from app.api.old_cli.routers.cli import bearer
+from app.api.old_cli.schemas.worktree import WorktreeAck, WorktreeReq
+from app.api.old_cli.services.authorization import CliAuthorization
+from app.api.old_cli.services.live_worktree import live_worktree
 from fastapi import (
     APIRouter,
     Depends,

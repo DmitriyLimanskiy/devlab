@@ -1,7 +1,7 @@
 import hashlib
 
-from app.api.cli.schemas.cli import CliResetPracticeRes
-from app.api.cli.services.authorization import CliAuthorization
+from app.api.old_cli.schemas.cli import CliResetPracticeRes
+from app.api.old_cli.services.authorization import CliAuthorization
 from app.api.practice.models.practice import PracticeSession, PracticeSnapshot
 from app.api.practice.models.repository import (
     GraphEvent,

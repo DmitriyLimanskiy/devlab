@@ -3,7 +3,7 @@ import secrets
 from datetime import UTC, datetime
 from typing import Annotated
 
-from app.api.cli.schemas.cli import (
+from app.api.old_cli.schemas.cli import (
     CliConnectReq,
     CliConnectRes,
     CliPresenceReq,
@@ -11,11 +11,11 @@ from app.api.cli.schemas.cli import (
     CliResetPracticeReq,
     CliResetPracticeRes,
 )
-from app.api.cli.schemas.snapshot import SnapshotReq, SnapshotRes
-from app.api.cli.services.authorization import CliAuthorization
-from app.api.cli.services.cli_presence import presence
-from app.api.cli.services.live_worktree import live_worktree
-from app.api.cli.services.practice_reset import PracticeResetService
+from app.api.old_cli.schemas.snapshot import SnapshotReq, SnapshotRes
+from app.api.old_cli.services.authorization import CliAuthorization
+from app.api.old_cli.services.cli_presence import presence
+from app.api.old_cli.services.live_worktree import live_worktree
+from app.api.old_cli.services.practice_reset import PracticeResetService
 from app.api.courses.models.course import Course
 from app.api.practice.models.practice import PracticeSession
 from app.api.practice.services.practice_events import events

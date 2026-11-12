@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { FlaskConical, PanelLeftClose, PanelLeftOpen, BookOpen, ArrowRight } from 'lucide-react'
+import { LogoutButton } from './features/auth/LogoutButton'
 import { Catalog } from './features/catalog/Catalog'
 import { GitPage } from './features/git/GitPage'
 import { IconButton } from './shared/ui'
-import { pages } from './shared/routes'
+import { api, pages } from './shared/routes'
+import { useApi } from './shared/useApi'
 import './tokens.css'
 import './styles.css'
 
@@ -13,14 +15,10 @@ const navigation = [
   { path: pages.git, label: 'Git', icon: FlaskConical },
 ]
 
-// Нарисовать декоративный знак терминала в боковом меню
-function TerminalMark() {
-  return <span className="sidebar-terminal" aria-hidden="true">&gt;_</span>
-}
-
 // Собрать оболочку приложения, навигацию и выбранную страницу
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => !window.matchMedia('(max-width: 480px)').matches)
+  const session = useApi(api.me)
   const requestedPath = window.location.pathname.replace(/\/$/, '') || '/'
   const path = requestedPath === '/' ? pages.catalog : requestedPath
   useEffect(() => {
@@ -29,7 +27,7 @@ function App() {
   const page = navigation.find(item => item.path === path)
   useEffect(() => { document.title = `${page?.label ?? 'Страница не найдена'} — Stack Forge` }, [page])
   return <div className={`workbench ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="Stack Forge — каталог курсов"><FlaskConical size={21} /><span>Stack <span className="accent">Forge</span></span></a><span className="titlebar-caption">Практика на настоящих инструментах</span></header>
+    <header className="titlebar"><a className="brand" href={pages.catalog} aria-label="Stack Forge — каталог курсов"><FlaskConical size={21} /><span>Stack <span className="accent">Forge</span></span></a>{session.data ? <LogoutButton /> : <span className="titlebar-caption">Практика на настоящих инструментах</span>}</header>
     <aside className="sidebar">
       <div className="sidebar-header">
         {sidebarOpen && <span>Рабочее пространство</span>}
@@ -40,11 +38,10 @@ function App() {
       <nav id="workspace-navigation" aria-label="Рабочее пространство">
         {navigation.map(({ path: href, label, icon: Icon }) => <a key={href} href={href} className={`nav-item ${path === href ? 'selected' : ''}`} aria-current={path === href ? 'page' : undefined} aria-label={label} title={sidebarOpen ? undefined : label}><Icon size={18} />{sidebarOpen && <span>{label}</span>}</a>)}
       </nav>
-      {sidebarOpen && <div className="sidebar-note"><TerminalMark /><p>Изучай инструмент<br />через практику</p></div>}
     </aside>
     <main className="editor">
       <div className={`canvas ${path === pages.git ? 'canvas-git' : path === pages.catalog ? 'canvas-catalog' : ''}`}>
-        {path === pages.catalog ? <Catalog /> : path === pages.git ? <GitPage /> : <section className="welcome"><h1>Страница не найдена</h1><a className="primary-link" href={pages.catalog}>К каталогу<ArrowRight size={16} /></a></section>}
+        {path === pages.catalog ? <Catalog onLogin={session.retry} /> : path === pages.git ? <GitPage onLogin={session.retry} /> : <section className="welcome"><h1>Страница не найдена</h1><a className="primary-link" href={pages.catalog}>К каталогу<ArrowRight size={16} /></a></section>}
       </div>
     </main>
   </div>
