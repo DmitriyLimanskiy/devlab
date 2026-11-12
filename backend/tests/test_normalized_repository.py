@@ -18,16 +18,13 @@ from app.api.practice.routers.git_practice import (
 )
 from fastapi import Response
 from fastapi.security import HTTPAuthorizationCredentials
+from git_snapshot_fixture import read_state
 from sqlalchemy import func, select
 
 
 class NormalizedRepositoryTest(test_git_course.GitCourseTest):
     async def test_switch_files_commit_refs_and_retries(self):
         """Проверить разделение текущего состояния, истории графа и повторных снимков"""
-        import sys
-
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from stack_forge.features.git_practice.git_state import read_state
 
         await self.prepare_courses()
         course = await self.request()

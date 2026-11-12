@@ -18,6 +18,7 @@ class RoutesTest(unittest.TestCase):
             set(routes),
             {
                 ("GET", "/api/v1/catalog"),
+                ("POST", "/api/v1/auth/register"),
                 ("GET", "/api/v1/git-course"),
                 ("POST", "/api/v1/git-course"),
                 ("POST", "/api/v1/cli/connect"),

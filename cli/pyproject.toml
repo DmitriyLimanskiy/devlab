@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "stack-forge-cli"
 version = "0.1.0"
-description = "Локальная терминальная сессия Stack Forge"
+description = "Выбор папки проекта Stack Forge"
 requires-python = ">=3.11"
-dependencies = ["websockets==15.0.1"]
 
 [project.scripts]
-stack-forge = "stack_forge.main:main"
+stackforge = "stack_forge.main:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+packages = ["stack_forge", "stack_forge.api"]
+package-dir = {stack_forge = "src"}

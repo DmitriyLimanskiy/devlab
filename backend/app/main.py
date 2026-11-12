@@ -1,4 +1,5 @@
-from backend.app.api.catalog.routers import router as catalog_router
+from app.api.auth.routers import router as register_router
+from app.api.catalog.routers import router as catalog_router
 from app.api.cli.routers.cli import router as cli_router
 from app.api.cli.routers.worktree import router as cli_worktree_router
 from app.api.cli.routers.worktree import ws_router as cli_worktree_ws_router
@@ -25,3 +26,4 @@ app.include_router(worktree_router)
 app.include_router(cli_worktree_ws_router)
 app.include_router(practice_ws_router)
 app.include_router(worktree_ws_router)
+app.include_router(register_router)

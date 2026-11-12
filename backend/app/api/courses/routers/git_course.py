@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from backend.app.api.catalog.schemas import CatalogRes
+from app.api.catalog.schemas import CatalogRes
 from app.api.courses.models.course import Course, CourseStep
 from app.api.courses.schemas.git_course import GitCourseReq, GitCourseRes
 from app.api.practice.models.practice import PracticeSession

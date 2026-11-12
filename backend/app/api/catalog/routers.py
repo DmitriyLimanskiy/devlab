@@ -1,12 +1,11 @@
 from typing import Annotated
 
+from app.api.catalog.schemas import CatalogRes
 from app.db.models import Course
 from app.db.session import get_session
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.app.api.catalog.schemas import CatalogRes
 
 router = APIRouter(prefix="/api/v1", tags=["catalog"])
 
