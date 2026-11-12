@@ -4,30 +4,12 @@ FastAPI-приложение и миграции PostgreSQL. Запуск API н
 
 ## Структура приложения
 
-```text
-app/
-├── main.py                     # создание FastAPI и подключение роутеров
-├── api/
-│   ├── routes/
-│   │   ├── course_catalog.py   # каталог курсов
-│   │   ├── git_course.py       # открытие Git-песочницы
-│   │   └── cli.py              # подключение CLI и приём снимков
-│   └── schemas/
-│       ├── course_catalog.py   # ответ каталога
-│       ├── git_course.py       # сессия и шаги курса
-│       ├── snapshot.py         # конверт запроса со снимком
-│       ├── git_state.py        # содержимое состояния Git
-│       └── cli.py              # запрос/ответ подключения CLI
-└── db/
-    ├── base.py                 # DeclarativeBase и соглашения имён
-    ├── config.py               # URL подключения из окружения
-    ├── session.py              # AsyncEngine и AsyncSession
-    └── models/
-        ├── course.py          # courses, course_steps
-        └── practice.py        # practice_sessions, practice_snapshots
-```
-
-`api/schemas` описывает HTTP-данные, `db/models` — хранение. Alembic импортирует общую Base и регистрирует модели из db/models. Перенос Python-модулей не меняет таблицы и не требует отдельной миграции.
+- `app/api/catalog/` — каталог курсов и его контракт
+- `app/api/courses/` — открытие курсов, шаги и модели хранения курсов
+- `app/api/cli/` — подключение CLI, присутствие, приём снимков и оперативных файлов
+- `app/api/practice/` — сессии, состояние, история графа и браузерные подписки
+- `app/db/` — общая база SQLAlchemy, подключение и регистрация моделей для Alembic
+- `app/main.py` — сборка FastAPI и подключение роутеров
 
 ## Контракт страниц и API
 
@@ -41,7 +23,7 @@ GET Git читает курсы со slug, начинающимся с `git-`, �
 
 ## Таблицы
 
-SQLAlchemy-модели находятся в `app/db/models/`, отдельно от Pydantic-моделей HTTP в `app/api/schemas/`.
+SQLAlchemy-модели хранятся в `models/` своей фичи, Pydantic-контракты — в `schemas/`. Alembic регистрирует модели через `app/db/models/`.
 
 - `courses`: `id` (identity), уникальный `slug`, `title`, `description`, `status`, `position`, `created_at`, `updated_at`.
 - `course_steps`: `id` (identity), `course_id`, `slug`, `position`, `title`, `content` (JSONB), `created_at`, `updated_at`.
@@ -114,7 +96,7 @@ Autogenerate требует доступа к БД; перед применен�
 
 ## Модель входящего снимка
 
-`app/api/schemas/cli/snapshot.py` описывает `SnapshotReq`, `git_state.py` — вложенные модели состояния. Контракт используется ручкой приёма снимков.
+`app/api/cli/schemas/snapshot.py` описывает `SnapshotReq`, `git_state.py` — вложенные модели состояния. Контракт используется ручкой приёма снимков.
 
 В `state` передаётся именно поле `state` локального файла CLI, без обёртки `generator/version/updated_at`. Версия доставки, поколение и сессия находятся на верхнем уровне запроса.
 
@@ -140,7 +122,7 @@ PYTHONPATH=backend backend/.venv/bin/python -m unittest discover -s backend/test
 
 ## Модели сессий песочницы
 
-`app/db/models/practice/practice.py` содержит `PracticeSession` и `PracticeSnapshot`; обе модели зарегистрированы в общей metadata для Alembic. Для этих таблиц добавлена отдельная миграция `8ca2ebb96c2b`; применение выполняется вручную. Начальная миграция курсов не меняется.
+`app/api/practice/models/practice.py` содержит `PracticeSession` и `PracticeSnapshot`; обе модели зарегистрированы в общей metadata для Alembic. Для этих таблиц добавлена отдельная миграция `8ca2ebb96c2b`; применение выполняется вручную. Начальная миграция курсов не меняется.
 
 - `practice_sessions`: UUID (`uuid4` задаётся Python), курс, статус active/closed, поколение (0 до первого CLI), хеш ключа, время создания/последнего подключения/закрытия. Частичный уникальный индекс разрешает одну active-сессию на курс. `closed_at` обязателен только при closed.
 - `practice_current_states`: одна обновляемая запись на сессию: HEAD, ветка, refs, статусы файлов, индекс, операции и SHA коммитов текущего снимка
@@ -172,7 +154,7 @@ docker compose exec -T -e RUN_DB_TESTS=1 backend python - < backend/tests/test_g
 
 `POST /api/v1/cli/connect` принимает course_slug, находит активную сессию, увеличивает generation, выдаёт новый ключ и сохраняет только SHA-256 ключа. `POST /api/v1/cli/send-snapshot` принимает SnapshotReq и заголовок Authorization: Bearer. Ответ подтверждает session_id, generation и version после commit. Повтор той же версии с тем же содержимым не обновляет received_at; старые версии/поколения и противоречащие повторы отклоняются.
 
-CLI уже использует каталог и обе ручки для подключения и начального снимка. Постоянная фоновая отправка и повторная доставка реализованы в CLI. Реальные запросы подключения и начальной доставки проверены; отдельные интеграционные проверки всех веток приёма (ошибки ключей, версий, поколений, повторы и конкуренция) ещё нужны. Код обработчиков — `app/api/routes/cli/cli.py`, модели — `app/api/schemas/cli/cli.py` и `snapshot.py`.
+CLI уже использует каталог и обе ручки для подключения и начального снимка. Постоянная фоновая отправка и повторная доставка реализованы в CLI. Реальные запросы подключения и начальной доставки проверены; отдельные интеграционные проверки всех веток приёма (ошибки ключей, версий, поколений, повторы и конкуренция) ещё нужны. Код обработчиков — `app/api/cli/routers/cli.py`, модели — `app/api/cli/schemas/cli.py` и `snapshot.py`.
 
 ## Состояние и события браузера
 
@@ -180,7 +162,7 @@ CLI уже использует каталог и обе ручки для по�
 
 `WS /ws/practice-sessions/{session_id}` проверяет существование сессии, регистрирует подписку, затем отправляет `{"type":"ready"}`. После ready браузер перечитывает HTTP. Сохранение нового снимка и новое подключение CLI после commit отправляют `{"type":"state_changed"}`. Безопасный повтор снимка события не создаёт. Каждые 20 секунд отправляется ping, чтобы соединение не простаивало на прокси. Разрыв требует новой подписки и HTTP-чтения.
 
-Рассылка в `app/services/practice/practice_events.py` работает в одном процессе FastAPI. Для медленного клиента сигналы объединяются в очередь размером 1; данные читаются из БД, история событий не хранится. Несколько workers/реплик требуют общего транспорта событий. Браузерные ручки соответствуют однопользовательскому прототипу, полноценной авторизации нет. WebSocket-транспорт Uvicorn включён зависимостью websockets; при обновлении зависимостей пересобрать backend.
+Рассылка в `app/api/practice/services/practice_events.py` работает в одном процессе FastAPI. Для медленного клиента сигналы объединяются в очередь размером 1; данные читаются из БД, история событий не хранится. Несколько workers/реплик требуют общего транспорта событий. Браузерные ручки соответствуют однопользовательскому прототипу, полноценной авторизации нет. WebSocket-транспорт Uvicorn включён зависимостью websockets; при обновлении зависимостей пересобрать backend.
 
 Проверка реальных HTTP/WebSocket и PostgreSQL в отдельной временной схеме: `RUN_DB_TESTS=1 PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v`. Дополнительно проверяются восстановление после пропущенного события, отсутствие события на повтор и различие поколений.
 
@@ -215,23 +197,16 @@ Heartbeat поступает каждые 10 секунд, аренда дейс
 
 Основной оперативный транспорт CLI — `WS /ws/cli-worktree` с заголовком Authorization: Bearer. В каждом сообщении session_id/generation/version/state (только kind/path/files). Backend проверяет допуск и версию, публикует данные в браузер и отвечает `{type: "ack", session_id, generation, version}`. Конфликт/ошибка ключа возвращаются как `{type: "error", status: ...}` с закрытием 1008. POST /cli-worktree сохранён для совместимости, новый CLI его не вызывает. Наблюдение за state.json и отправка не зависят от команды; HTTP-сохранение графа остаётся отдельным каналом.
 
-## Структура приложения
-
-- `app/api/routes/{catalog,cli,courses,practice}/` — каталог, входящий транспорт CLI, открытие курсов и чтение практики браузером
-- `app/api/schemas/{catalog,cli,courses,practice}/` — соответствующие модели запросов и ответов
-- `app/db/models/courses/` — курсы и шаги; `app/db/models/practice/` — сессии, текущее состояние, коммиты и история refs
-- `app/services/cli/` — присутствие и оперативные файлы; `app/services/practice/` — события и сохранение графа
-
 Разделение каталогов не меняет URL, таблицы и формат данных. Все роутеры подключаются ровно один раз в `app/main.py`. Внутренние импорты начинаются с `app`, запуск выполняется из `backend/`
 
 
 ### Сервисы чтения практики
 
-Обработчики в `app/api/routes/practice/git_practice.py` задают HTTP-параметры, заголовки и маршруты WebSocket. Чтение данных разделено на сервисы:
+Обработчики в `app/api/practice/routers/git_practice.py` задают HTTP-параметры, заголовки и маршруты WebSocket. Чтение данных разделено на сервисы:
 
-- `app/services/practice/practice_state.py`, класс `PracticeStateService` — текущее состояние сессии, снимок, курсор истории и присутствие CLI
-- `app/services/practice/graph_history.py`, класс `GraphHistoryService` — страница истории графа и восстановление refs по событиям
-- `app/services/practice/event_stream.py`, класс `EventStream` — общий WebSocket-поток для событий графа и оперативных файлов: подписка, ready, ping и завершение фоновых задач
+- `app/api/practice/services/practice_state.py`, класс `PracticeStateService` — текущее состояние сессии, снимок, курсор истории и присутствие CLI
+- `app/api/practice/services/graph_history.py`, класс `GraphHistoryService` — страница истории графа и восстановление refs по событиям
+- `app/api/practice/services/event_stream.py`, класс `EventStream` — общий WebSocket-поток для событий графа и оперативных файлов: подписка, ready, ping и завершение фоновых задач
 
 Сервисы чтения получают отдельную AsyncSession от вызывающей ручки. Проверка существования сессии перед открытием WebSocket выполняется коротким обращением к БД; соединение БД не удерживается на время потока. URL и формат ответов при этом разделении не меняются.
 

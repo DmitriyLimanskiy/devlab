@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import test_git_course
 import uvicorn
-from app.api.routes.practice.git_practice import (
+from app.api.practice.routers.git_practice import (
     get_practice_state,
     get_snapshot_history,
 )
@@ -38,7 +38,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         port = listener.getsockname()[1]
         server = uvicorn.Server(uvicorn.Config(app, log_level="error", lifespan="off"))
         with patch(
-            "app.api.routes.practice.git_practice.get_session_factory",
+            "app.api.practice.routers.git_practice.get_session_factory",
             return_value=self.factory,
         ):
             task = asyncio.create_task(server.serve(sockets=[listener]))
@@ -136,7 +136,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                 sys.path.insert(
                     0, str(Path(__file__).resolve().parents[2] / "cli" / "src")
                 )
-                from stack_forge.practice.git_state import read_state
+                from stack_forge.features.git_practice.git_state import read_state
 
                 with tempfile.TemporaryDirectory() as directory:
                     repo = Path(directory)
@@ -165,7 +165,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
                     self.assertEqual(json.loads(await ws.recv())["type"], "ready")
                     saved = (await request(path))["snapshot"]
                     self.assertEqual(saved["version"], 2)
-                    from app.api.schemas.cli.snapshot import SnapshotReq
+                    from app.api.cli.schemas.snapshot import SnapshotReq
 
                     self.assertEqual(
                         saved["state"],
@@ -187,9 +187,9 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_history_order_pagination_and_conflicting_retries(self):
         """Проверить порядок истории, границы страниц и конфликтующие повторы"""
-        from app.api.routes.cli.cli import cli_connect, cli_send_state
-        from app.api.schemas.cli.cli import CliConnectReq
-        from app.api.schemas.cli.snapshot import SnapshotReq
+        from app.api.cli.routers.cli import cli_connect, cli_send_state
+        from app.api.cli.schemas.cli import CliConnectReq
+        from app.api.cli.schemas.snapshot import SnapshotReq
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
 
@@ -251,10 +251,10 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_failed_commit_does_not_publish(self):
         """Проверить отсутствие события при неудачном commit в БД"""
-        from app.api.routes.cli.cli import cli_connect, cli_send_state
-        from app.api.schemas.cli.cli import CliConnectReq
-        from app.api.schemas.cli.snapshot import SnapshotReq
-        from app.services.practice.practice_events import events
+        from app.api.cli.routers.cli import cli_connect, cli_send_state
+        from app.api.cli.schemas.cli import CliConnectReq
+        from app.api.cli.schemas.snapshot import SnapshotReq
+        from app.api.practice.services.practice_events import events
         from fastapi.security import HTTPAuthorizationCredentials
 
         await self.prepare_courses()
@@ -291,9 +291,13 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_presence_auth_and_no_snapshot_versions(self):
         """Проверить авторизацию присутствия без увеличения версии снимка"""
-        from app.api.routes.cli.cli import cli_connect, cli_disconnect, cli_heartbeat
-        from app.api.schemas.cli.cli import CliConnectReq, CliPresenceReq
-        from app.services.cli.cli_presence import presence
+        from app.api.cli.routers.cli import (
+            cli_connect,
+            cli_disconnect,
+            cli_heartbeat,
+        )
+        from app.api.cli.schemas.cli import CliConnectReq, CliPresenceReq
+        from app.api.cli.services.cli_presence import presence
         from fastapi import HTTPException
         from fastapi.security import HTTPAuthorizationCredentials
 
@@ -333,8 +337,8 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
 
     async def test_cli_client_resets_database_session(self):
         """Проверить реальный DELETE от CLI с авторизацией и очисткой связанных таблиц"""
-        from app.db.models.practice.practice import PracticeSession, PracticeSnapshot
-        from app.db.models.practice.repository import (
+        from app.api.practice.models.practice import PracticeSession, PracticeSnapshot
+        from app.api.practice.models.repository import (
             GraphEvent,
             RepositoryCommit,
             SnapshotReceipt,
@@ -342,7 +346,7 @@ class PracticeDeliveryTest(test_git_course.GitCourseTest):
         from sqlalchemy import func, select
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from stack_forge.cli.api import ApiClient, ApiError, Connection
+        from stack_forge.shared.api import ApiClient, ApiError, Connection
 
         await self.prepare_courses()
         course = await self.request()

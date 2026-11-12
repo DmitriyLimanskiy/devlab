@@ -8,8 +8,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from stack_forge.practice.git_state import stable_state
-from stack_forge.practice.observer import Observer
+from stack_forge.features.git_practice.git_state import stable_state
+from stack_forge.features.git_practice.observer import Observer
 
 
 class GitStateTest(unittest.TestCase):
@@ -216,8 +216,8 @@ class GitStateTest(unittest.TestCase):
 
     def test_commands_without_git_changes_do_not_enqueue_snapshots(self):
         """Проверить отсутствие новых версий доставки после неизменяющих команд"""
-        from stack_forge.cli.api import ApiClient, Connection
-        from stack_forge.practice.sync import SnapshotSender
+        from stack_forge.features.git_practice.sync import SnapshotSender
+        from stack_forge.shared.api import ApiClient, Connection
 
         self.initialize()
         self.commit("base")

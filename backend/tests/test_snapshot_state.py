@@ -6,11 +6,11 @@ import unittest
 from pathlib import Path
 from uuid import uuid4
 
-from app.api.schemas.cli.snapshot import SnapshotReq
+from app.api.cli.schemas.snapshot import SnapshotReq
 from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-from stack_forge.practice.git_state import read_state
+from stack_forge.features.git_practice.git_state import read_state
 
 
 class SnapshotStateTest(unittest.TestCase):

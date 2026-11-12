@@ -1,15 +1,15 @@
 import fcntl
+import json
 import os
 import pty
 import select
-import json
 import signal
 import struct
 import subprocess
 import sys
+import tempfile
 import termios
 import time
-import tempfile
 import unittest
 from pathlib import Path
 

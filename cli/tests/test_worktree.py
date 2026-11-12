@@ -1,5 +1,5 @@
-import sys
 import json
+import sys
 import tempfile
 import threading
 import time
@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from stack_forge.cli.api import Connection
-from stack_forge.practice.worktree import WorktreeSender
+from stack_forge.features.git_practice.worktree import WorktreeSender
+from stack_forge.shared.api import Connection
 
 
 class Client:

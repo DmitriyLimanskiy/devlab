@@ -1,22 +1,22 @@
 import contextlib
 import io
 import json
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-import sys
-import threading
 import os
-import subprocess
-import tempfile
 import pty
 import select
+import subprocess
+import sys
+import tempfile
+import threading
 import time
 import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from stack_forge.cli.api import ApiClient, ApiError
-from stack_forge.cli.connection import choose_connection
+from stack_forge.features.session.connection import choose_connection
+from stack_forge.shared.api import ApiClient, ApiError
 
 
 class ApiTest(unittest.TestCase):

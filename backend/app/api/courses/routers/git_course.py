@@ -1,0 +1,77 @@
+from typing import Annotated
+
+from backend.app.api.catalog.schemas import CatalogRes
+from app.api.courses.models.course import Course, CourseStep
+from app.api.courses.schemas.git_course import GitCourseReq, GitCourseRes
+from app.api.practice.models.practice import PracticeSession
+from app.db.session import get_session
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+router = APIRouter(prefix="/api/v1", tags=["git-course"])
+
+
+@router.get("/git-course", response_model=list[CatalogRes])
+async def git_courses(
+    db: Annotated[AsyncSession, Depends(get_session)],
+) -> list[CatalogRes]:
+    """Получить список Git-курсов без создания практических сессий"""
+    courses = await db.scalars(
+        select(Course)
+        .where(Course.slug.startswith("git-"))
+        .order_by(Course.position, Course.id)
+    )
+    return [
+        CatalogRes(
+            id=course.slug,
+            title=course.title,
+            description=course.description,
+            status=course.status,
+            position=course.position,
+        )
+        for course in courses.all()
+    ]
+
+
+@router.post("/git-course", response_model=GitCourseRes)
+async def git_course(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    request: GitCourseReq,
+) -> GitCourseRes:
+    """Открыть активную сессию выбранного курса и вернуть его шаги"""
+    course = await db.scalar(select(Course).where(Course.slug == request.course_slug))
+    if course is None:
+        raise HTTPException(
+            status_code=404, detail=f"Курс {request.course_slug} не найден"
+        )
+
+    # Создать сессию или получить существующую
+    statement = insert(PracticeSession).values(
+        course_id=course.id,
+        status="active",
+        generation=0,
+    )
+
+    statement = statement.on_conflict_do_update(
+        index_elements=[PracticeSession.course_id],
+        index_where=PracticeSession.status == "active",
+        set_={"course_id": statement.excluded.course_id},
+    ).returning(PracticeSession)
+
+    practice_session = await db.scalar(statement)
+    await db.commit()
+
+    # Далее - получение шагов и формирование ответа
+    steps = await db.scalars(
+        select(CourseStep)
+        .where(CourseStep.course_id == course.id)
+        .order_by(CourseStep.position, CourseStep.id)
+    )
+
+    return GitCourseRes(
+        session_id=practice_session.id,
+        generation=practice_session.generation,
+        steps=steps.all(),
+    )

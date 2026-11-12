@@ -1,6 +1,6 @@
-from app.db.models.courses.course import Course, CourseStep
-from app.db.models.practice.practice import PracticeSession, PracticeSnapshot
-from app.db.models.practice.repository import (
+from app.api.courses.models.course import Course, CourseStep
+from app.api.practice.models.practice import PracticeSession, PracticeSnapshot
+from app.api.practice.models.repository import (
     GraphEvent,
     RepositoryCommit,
     SnapshotReceipt,

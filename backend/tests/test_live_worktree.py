@@ -9,10 +9,9 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import uvicorn
-from websockets.asyncio.client import connect
-
+from app.api.cli.services.live_worktree import live_worktree
 from app.main import app
-from app.services.cli.live_worktree import live_worktree
+from websockets.asyncio.client import connect
 
 
 class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
@@ -62,7 +61,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         path = f"/api/v1/practice-sessions/{sid}/worktree"
         try:
             with patch(
-                "app.services.cli.authorization.get_session_factory",
+                "app.api.cli.services.authorization.get_session_factory",
                 side_effect=AssertionError("База не должна вызываться"),
             ):
                 self.assertIsNone((await request(path))["state"])
@@ -117,9 +116,9 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
         from pathlib import Path
 
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "cli" / "src"))
-        from stack_forge.cli.api import ApiClient, Connection
-        from stack_forge.practice.observer import Observer
-        from stack_forge.practice.worktree import WorktreeSender
+        from stack_forge.features.git_practice.observer import Observer
+        from stack_forge.features.git_practice.worktree import WorktreeSender
+        from stack_forge.shared.api import ApiClient, Connection
 
         sid, key = uuid4(), "periodic-test-key"
         live_worktree.bind(sid, 1, hashlib.sha256(key.encode()).hexdigest())
@@ -177,7 +176,7 @@ class WorktreeHttpTest(unittest.IsolatedAsyncioTestCase):
                 sender.start()
                 try:
                     with patch(
-                        "app.services.cli.authorization.get_session_factory",
+                        "app.api.cli.services.authorization.get_session_factory",
                         side_effect=AssertionError("БД не нужна"),
                     ):
                         await wait_files(lambda files: files == [])

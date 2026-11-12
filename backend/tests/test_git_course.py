@@ -3,8 +3,8 @@ import os
 import unittest
 from uuid import uuid4
 
-from app.api.routes.courses.git_course import git_course, git_courses
-from app.api.schemas.courses.git_course import GitCourseReq
+from app.api.courses.routers.git_course import git_course, git_courses
+from app.api.courses.schemas.git_course import GitCourseReq
 from app.db.base import Base
 from app.db.config import database_url
 from app.db.models import Course, CourseStep, PracticeSession

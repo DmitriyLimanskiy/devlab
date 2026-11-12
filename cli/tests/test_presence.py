@@ -1,11 +1,11 @@
 import sys
-from pathlib import Path
 import threading
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from stack_forge.cli.api import ApiError
-from stack_forge.cli.presence import PresenceReporter
+from stack_forge.features.session.presence import PresenceReporter
+from stack_forge.shared.api import ApiError
 
 
 class PresenceTest(unittest.TestCase):

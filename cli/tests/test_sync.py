@@ -1,15 +1,15 @@
 import json
-from pathlib import Path
 import sys
 import tempfile
 import threading
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from stack_forge.cli.api import ApiError, Connection
-from stack_forge.practice.sync import SnapshotSender
+from stack_forge.features.git_practice.sync import SnapshotSender
+from stack_forge.shared.api import ApiError, Connection
 
 
 class Client:
